@@ -294,13 +294,17 @@ invokeClang args =
 -- Regular old 'fromJson' returns a Result type. I'm not too concerned
 -- about the error portion, so just toss it and return a 'Maybe'.
 convertVals :: V.Vector Value -> V.Vector ASTObject
-convertVals x = let resultObjs = V.map (fromJSON :: Value -> Result ASTObject) x
-                    justSuccess = V.filter (\case
-                                               (Success _) -> True
-                                               (Error _) -> False)
-                                  resultObjs
-                    objs = V.map (\(Success obj) -> obj) justSuccess
-                in objs
+convertVals x =
+  let
+    resultObjs = V.map (fromJSON :: Value -> Result ASTObject) x
+    justSuccess = V.filter (\case
+                               (Success _) -> True
+                               (Error _) -> False)
+                  resultObjs
+    fromSuccess = (\case
+                     (Success obj) -> obj
+                     (Error _) -> error "Error somehow bypassed filter")
+  in V.map fromSuccess justSuccess
 
 -- Don't parse the nodes inside of the syntax tree just yet. First, filter out
 -- everything that isn't from the file in question. Then parse and deal with
