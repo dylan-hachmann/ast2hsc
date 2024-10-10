@@ -5,6 +5,7 @@ import qualified Data.Map as M
 import qualified Data.Vector as V
 import MyLib
 import System.Environment (getArgs)
+import System.IO
 import Text.Pretty.Simple
 
 main :: IO ()
@@ -18,7 +19,7 @@ loadEnv :: IO Env
 loadEnv = do
   args <- getArgs
   let filepath = last args
-  translationUnitDecl <- invokeClang args
+  translationUnitDecl <- decodeFromHandle stdin
   tdMap <- getTypedefsMap (return translationUnitDecl)
   let header = last args
       astNodes = getASTNodesFromFile header translationUnitDecl

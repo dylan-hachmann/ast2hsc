@@ -17,6 +17,7 @@ import qualified Data.Text as T
 import qualified Data.Vector as V
 import GHC.Generics
 import System.Process
+import System.IO
 
 
 data Env = Env
@@ -465,42 +466,21 @@ unfurlTypedefs tdMap dt =
 clangExecutable :: String
 clangExecutable = "clang"
 
-invokeClang :: [String] -> IO TranslationUnitDecl
-invokeClang args =
-  let args' =
-        [ "-x",
-          "c",
-          "-Xclang",
-          "-ast-dump=json",
-          "-fsyntax-only"
-        ]
-          <> args
-   in do
-        (_, Just hout, _, _) <-
-          createProcess
-            (proc clangExecutable args')
-              { std_out = CreatePipe,
-                -- suppress stdErr, which is usually a bunch of garbage about
-                -- not finding includes
-                --
-                -- might be useful though. change eventually
-                std_err = CreatePipe
-              }
-        contents <- B.hGetContents hout
-        case decode (LB.fromStrict contents) of
-          Just jsonValue -> return jsonValue
-          Nothing -> return (TranslationUnitDecl (V.fromList []))
+decodeFromHandle :: Handle -> IO TranslationUnitDecl
+decodeFromHandle h =
+  do
+    contents <- B.hGetContents h
+    case decode (LB.fromStrict contents) of
+      Just jsonValue -> return jsonValue
+      Nothing -> return (TranslationUnitDecl (V.fromList []))
 
+decodeASTNodes :: Handle -> FilePath -> IO (V.Vector ASTObject)
+decodeASTNodes h f =
+  getASTNodesFromFile f <$> decodeFromHandle h
 
-invokeAndGetASTNodes :: [String] -> IO (V.Vector ASTObject)
-invokeAndGetASTNodes args =
-  getASTNodesFromFile (last args)
-    <$> invokeClang args
-
-invokeAndGetTypedefs :: [String] -> IO (V.Vector ASTObject)
-invokeAndGetTypedefs args =
-  getTypedefsFromTU
-    <$> invokeClang args
+decodeTypedefs :: Handle -> IO (V.Vector ASTObject)
+decodeTypedefs h =
+  getTypedefsFromTU <$> decodeFromHandle h
 
 
 -- * Higher-level convenience
@@ -512,6 +492,29 @@ renderAll = do
   let astObjs = getInnerAsList ast
   renders <- mapM (renderASTObject fp) astObjs
   return (unlines renders)
+
+_invokeClang :: [String] -> IO Handle
+_invokeClang args =
+  let args' =
+        [ "-x",
+          "c",
+          "-Xclang",
+          "-ast-dump=json",
+          "-fsyntax-only"
+        ]
+        <> args
+  in do
+    (_, Just hout, _, _) <-
+      createProcess
+      (proc clangExecutable args')
+      { std_out = CreatePipe,
+        -- Suppress stdErr, which is often a bunch of useless garbage about not
+        -- finding includes.
+        --
+        -- Might be useful though. May change eventually.
+        std_err = CreatePipe
+      }
+    return hout
 
 _clangArgs :: [String]
 _clangArgs =
