@@ -18,6 +18,7 @@ import qualified Data.Vector as V
 import GHC.Generics
 import System.Process
 import System.IO
+import Data.Maybe
 
 
 data Env = Env
@@ -401,16 +402,26 @@ getASTNodesFromFile fp tu =
   convertVals $
     dropUntilFile fp (syntaxTree tu)
 
--- Drop nodes
+
+-- At the start of each file, the first ASTNode usually seems to have:
+--
+-- "loc: { file: x }".
+--
+-- I'm not sure how reliable this is
+getLocFile :: AsValue s => s -> Maybe Value
+getLocFile x =
+  x ^? ( _Value . key (fromString "loc") . key (fromString "file") )
+
+getFilesInTU :: TranslationUnitDecl -> [String]
+getFilesInTU TranslationUnitDecl{syntaxTree=vv} =
+  let valueList = V.toList vv
+      fileValues = mapMaybe getLocFile valueList
+  in map (\(String x) -> T.unpack x) fileValues
+
 dropUntilFile :: FilePath -> V.Vector Value -> V.Vector Value
 dropUntilFile fp vv =
-  let getFileLoc =
-        ( _Value
-            . key (fromString "loc")
-            . key (fromString "file")
-        )
-      expectedFileLoc = Just (String (T.pack fp))
-   in snd $ V.break (\x -> x ^? getFileLoc == expectedFileLoc) vv
+  let expectedFileLoc = Just (String (T.pack fp))
+  in snd $ V.break (\x -> getLocFile x == expectedFileLoc) vv
 
 -- * Typedefs
 isTypedef :: ASTObject -> Bool

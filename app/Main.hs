@@ -11,16 +11,14 @@ import Text.Pretty.Simple
 main :: IO ()
 main = do
   env <- loadEnv
-  let str = runReader renderAll env :: String
+  let str = runReader renderAll env
   putStrLn str
   return ()
 
 loadEnv :: IO Env
 loadEnv = do
-  args <- getArgs
-  let filepath = last args
   translationUnitDecl <- decodeFromHandle stdin
+  let header = last $ getFilesInTU translationUnitDecl
   tdMap <- getTypedefsMap (return translationUnitDecl)
-  let header = last args
-      astNodes = getASTNodesFromFile header translationUnitDecl
-  return (Env filepath tdMap astNodes)
+  let astNodes = getASTNodesFromFile header translationUnitDecl
+  return (Env header tdMap astNodes)
