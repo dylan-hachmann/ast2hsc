@@ -69,9 +69,10 @@ library
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base,
-                      aeson,
+    build-depends:    aeson,
+                      base,
                       bytestring,
+                      containers >= 0.6.5.1,
                       lens,
                       lens-aeson,
                       process,
