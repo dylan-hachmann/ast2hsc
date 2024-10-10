@@ -24,14 +24,14 @@ import qualified Data.Vector as V
 main :: IO ()
 main = do
   env <- loadEnv
-  let str = runReader renderAll env
-  putStrLn str
+  let hsc = runReader renderAll env
+  putStrLn hsc
   return ()
 
 loadEnv :: IO Env
 loadEnv = do
   args <- getArgs
-  -- Either read from stdin or get the first arg
+  -- Either get the first arg or read from stdin if not provided
   fileHandle <-
     if null args
       then return stdin
@@ -66,12 +66,10 @@ data DeclType = DeclType
   }
   deriving (Show, Generic, FromJSON)
 
--- Location for typedef-ing anonymous structs
+-- I think that location will probably be the most straightforward way
+-- to match record fields and typedefs to anonymous structs.
 data Loc = Loc
   { offset :: Maybe Int,
-    -- I think this one could be a Maybe...but let the
-    -- program crash for now and deal with it if it
-    -- becomes a problem
     line :: Maybe Int,
     col :: Maybe Int,
     tokLen :: Maybe Int,
@@ -79,15 +77,12 @@ data Loc = Loc
   }
   deriving (Show, Generic, FromJSON)
 
--- Annoyingly, this is nested, but I've never seen a single thing
--- besides "file" in there.
 data IncludeFile = IncludeFile
   { file :: Maybe String
   }
   deriving (Show, Generic, FromJSON)
 
--- Only should get one of these at the top level, so it can be thought
--- of as an intermediate format that signifies a successful parse.
+-- Only should get one of these at the top level
 data TranslationUnitDecl = TranslationUnitDecl
   { syntaxTree :: V.Vector Value
   }
@@ -397,8 +392,8 @@ enumNameChange = id
 
 -- Regular old 'fromJson' returns a Result type. I'm not too concerned
 -- about the error portion, so just toss it and return a 'Maybe'.
-convertVals :: V.Vector Value -> V.Vector ASTObject
-convertVals x =
+decodeVals :: V.Vector Value -> V.Vector ASTObject
+decodeVals x =
   let resultObjs = V.map (fromJSON :: Value -> Result ASTObject) x
       justSuccess =
         V.filter
@@ -417,22 +412,22 @@ convertVals x =
         )
    in V.map fromSuccess justSuccess
 
--- Don't parse the nodes inside of the syntax tree just yet. First,
--- filter out everything that isn't from the file in question. Then
--- parse and deal with the resultant Vector.
+-- First, filter out everything that isn't from the file in
+-- question. Then parse and deal with the resultant Vector.
 getASTNodesFromFile ::
   FilePath ->
   TranslationUnitDecl ->
   V.Vector ASTObject
 getASTNodesFromFile fp tu =
-  convertVals $
+  decodeVals $
     dropUntilFile fp (syntaxTree tu)
 
 -- At the start of each file, the first ASTNode usually seems to have:
 --
 -- "loc: { file: x }".
 --
--- I'm not sure how reliable this is
+-- I'm not sure how reliable this is, but for now I'm using this to
+-- determine which header file is being bound to.
 getLocFile :: (AsValue s) => s -> Maybe Value
 getLocFile x =
   x ^? (_Value . key (fromString "loc") . key (fromString "file"))
@@ -459,7 +454,7 @@ isTypedef _ = False
 getTypedefsFromTU :: TranslationUnitDecl -> V.Vector ASTObject
 getTypedefsFromTU tu =
   V.filter isTypedef $
-    convertVals (syntaxTree tu)
+    decodeVals (syntaxTree tu)
 
 typedefToTuple :: ASTObject -> (String, String)
 typedefToTuple (NodeTD x) =
@@ -490,16 +485,15 @@ decodeFromHandle h =
       Just jsonValue -> return jsonValue
       Nothing -> return (TranslationUnitDecl (V.fromList []))
 
-decodeASTNodes :: Handle -> FilePath -> IO (V.Vector ASTObject)
-decodeASTNodes h f =
+-- * Convenience functions for REPL use
+_decodeASTNodes :: Handle -> FilePath -> IO (V.Vector ASTObject)
+_decodeASTNodes h f =
   getASTNodesFromFile f <$> decodeFromHandle h
 
-decodeTypedefs :: Handle -> IO (V.Vector ASTObject)
-decodeTypedefs h =
+_decodeTypedefs :: Handle -> IO (V.Vector ASTObject)
+_decodeTypedefs h =
   getTypedefsFromTU <$> decodeFromHandle h
 
--- Convenience function for getting an AST dump while I'm inside the
--- REPL
 _invokeClang :: [String] -> IO Handle
 _invokeClang args =
   let args' =
