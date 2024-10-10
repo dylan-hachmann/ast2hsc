@@ -14,7 +14,6 @@ import qualified Data.Vector as V
 import qualified Data.Text as T
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
-import Data.Aeson.KeyMap (KeyMap)
 
 -- Small objects within AST nodes
 data DeclType where
@@ -22,6 +21,8 @@ data DeclType where
               , desugaredQualType :: Maybe String } -> DeclType
   deriving (Show, Generic, FromJSON)
 
+-- Only should get one of these at the top level, so it can be thought
+-- of as an intermediate format that signifies a successful parse.
 data TranslationUnitDecl = TranslationUnitDecl
   { syntaxTree :: V.Vector Value
   } deriving Show
@@ -275,19 +276,19 @@ invokeClang args =
         Just jsonValue -> return jsonValue
         Nothing        -> return (TranslationUnitDecl (V.fromList []))
 
+-- Regular old 'fromJson' returns a Result type. I'm not too concerned
+-- about the error portion, so just toss it and return a 'Maybe'.
+convertVals :: V.Vector Value -> Maybe (V.Vector ASTObject)
+convertVals x = let resultObjs = V.map (fromJSON :: Value -> Result ASTObject) x
+                in case sequence resultObjs of
+                     Success objs -> Just objs
+                     Error _      -> Nothing
+
 -- Don't parse the nodes inside of the syntax tree just yet. First, filter out
 -- everything that isn't from the file in question. Then parse and deal with
 -- the resultant Vector.
 getASTNodesFromFile :: FilePath -> TranslationUnitDecl -> Maybe (V.Vector ASTObject)
-getASTNodesFromFile fp tu =
-  let
-    convertVals x =
-      let resultObjs = V.map (fromJSON :: Value -> Result ASTObject) x
-      in case sequence resultObjs of
-           Success objs -> Just objs
-           Error _      -> Nothing
-  in
-    convertVals $ dropUntilFile fp (syntaxTree tu)
+getASTNodesFromFile fp tu = convertVals $ dropUntilFile fp (syntaxTree tu)
 
 -- Drop nodes
 dropUntilFile :: FilePath -> V.Vector Value -> V.Vector Value
