@@ -7,12 +7,3 @@ typedef integ intege;
 typedef intege integer;
 
 integer add4(intege, integ, inte, int);
-
-// Struct
-struct some_nums {
-  int a;
-  long b;
-  float c;
-};
-
-bool crunch(some_nums);
