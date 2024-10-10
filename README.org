@@ -30,6 +30,7 @@ terms of functionality:
   just the templating language)
 - Tests! I'm not sure how I want to do these. Ideally, they call
   compiled C code.
+For formatting I've been using ormolu.
 
 I'm still a noob when it comes to Haskell. Any help cleaning up my
 code would be much appreciated.
