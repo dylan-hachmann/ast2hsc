@@ -1,26 +1,29 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
-module MyLib (everything, invokeClang) where
+{-# LANGUAGE NamedFieldPuns #-}
 
-import GHC.Generics
-import Data.Aeson
-import Data.Aeson.Key
-import Data.Aeson.Lens
-import System.Process
-import Control.Lens
-import qualified Data.Vector as V
-import qualified Data.Text as T
+module MyLib (everything, invokeClang) where
+import           Control.Lens
+import           Data.Aeson
+import           Data.Aeson.Key
+import           Data.Aeson.Lens
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Map.Lazy as M
+import qualified Data.Text as T
+import qualified Data.Vector as V
+import           GHC.Generics
+import           System.Process
+
 
 -- Small objects within AST nodes
 data DeclType where
   DeclType :: { qualType :: String
               , desugaredQualType :: Maybe String } -> DeclType
   deriving (Show, Generic, FromJSON)
+
 
 -- Only should get one of these at the top level, so it can be thought
 -- of as an intermediate format that signifies a successful parse.
@@ -31,6 +34,7 @@ instance FromJSON TranslationUnitDecl where
   parseJSON = withObject "TranslationUnitDecl" $ \obj -> do
     syntaxTree' <- obj .: fromString "inner"
     return (TranslationUnitDecl syntaxTree')
+
 
 -- AST nodes i.e. any objects with "kind" field
 data RecordDecl = RecordDecl
@@ -88,110 +92,90 @@ data ASTObject = NodeRD RecordDecl
                deriving Show
 instance FromJSON ASTObject where
   parseJSON = withObject "ASTObject" $ \obj -> do
-    kind' <- obj .: fromString "kind"
-    case kind' of
+    kind <- obj .: fromString "kind"
+    case kind of
       "RecordDecl"
-        -> do recordName' <- obj .:? fromString "name"
-              fields' <- obj .:? fromString "inner"
-              return (NodeRD RecordDecl
-                      { recordName = recordName'
-                      , fields = fields' })
+        -> do recordName <- obj .:? fromString "name"
+              fields <- obj .:? fromString "inner"
+              return (NodeRD RecordDecl { recordName, fields })
       "FieldDecl"
-        -> do fieldName' <- obj .: fromString "name"
-              fieldType' <- obj .: fromString "type"
-              return (NodeFiD FieldDecl
-                      { fieldName = fieldName'
-                      , fieldType = fieldType' })
+        -> do fieldName <- obj .: fromString "name"
+              fieldType <- obj .: fromString "type"
+              return (NodeFiD FieldDecl { fieldName, fieldType })
       "FunctionDecl"
-        -> do name' <- obj .: fromString "name"
-              returnType' <- obj .: fromString "type"
-              functionInner' <- obj .:? fromString "inner"
+        -> do name <- obj .: fromString "name"
+              returnType <- obj .: fromString "type"
+              functionInner <- obj .:? fromString "inner"
               return (NodeFuD FunctionDecl
-                      { name = name'
-                      , returnType = returnType'
-                      , functionInner = functionInner' })
+                      { name, returnType, functionInner })
       "ParmVarDecl"
-        -> do parmVarName' <- obj .: fromString "name"
-              parmVarType' <- obj .: fromString "type"
+        -> do parmVarName <- obj .: fromString "name"
+              parmVarType <- obj .: fromString "type"
               return (NodePVD ParmVarDecl
-                      { parmVarName = parmVarName'
-                      , parmVarType = parmVarType' })
+                      { parmVarName, parmVarType })
       "EnumDecl"
-        -> do enumName' <- obj .: fromString "name"
-              enumInner' <- obj .: fromString "inner"
-              return (NodeED EnumDecl
-                      { enumName = enumName'
-                      , enumInner = enumInner' })
+        -> do enumName <- obj .: fromString "name"
+              enumInner <- obj .: fromString "inner"
+              return (NodeED EnumDecl { enumName, enumInner })
       "EnumConstantDecl"
-        -> do enumConstantName' <- obj .: fromString "name"
-              return (NodeECD EnumConstantDecl
-                      { enumConstantName = enumConstantName' })
+        -> do enumConstantName <- obj .: fromString "name"
+              return (NodeECD EnumConstantDecl { enumConstantName })
       "TypedefDecl"
-        -> do typeDefName' <- obj .: fromString "name"
-              typeDefType' <- obj .: fromString "type"
-              return (NodeTD TypedefDecl
-                      { typeDefName = typeDefName'
-                      , typeDefType = typeDefType' })
+        -> do typeDefName <- obj .: fromString "name"
+              typeDefType <- obj .: fromString "type"
+              return (NodeTD TypedefDecl { typeDefName, typeDefType })
       "FullComment"
-        -> do fullCommentInner' <- obj .:? fromString "inner"
-              return (NodeFullCmnt FullComment
-                     { fullCommentInner = fullCommentInner' })
+        -> do fullCommentInner <- obj .:? fromString "inner"
+              return (NodeFullCmnt FullComment { fullCommentInner })
       _
-        -> do return (NodeUnimpl Unimplemented { kind = kind' })
+        -> do return (NodeUnimpl Unimplemented { kind })
 
 
 renderASTObject :: FilePath -> ASTObject -> String
 renderASTObject _ (NodeUnimpl _) = ""
 renderASTObject _ (NodeED ed) =
   case enumInner ed of
-    Nothing
-      -> unlines
-         [ "{{ enum"
-         , "    "++enumName ed
-         , "}}"
-         ]
-    Just x
-      -> unlines
-         ([ "{{ enum"
-          , "    "++enumName ed++","
-          ]++renderEnumConstantDecls x++["}}"])
+    Nothing -> unlines [ "{{ enum"
+                       , "    "++enumName ed
+                       , "}}"
+                       ]
+    Just x -> unlines ([ "{{ enum"
+                       , "    "++enumName ed++","
+                       ]++renderEnumConstantDecls x++["}}"])
 renderASTObject fp (NodeFuD fd) =
   let funcName = name fd
-      sig = renderParamTypeSignature
-            $ (\case
-                  Just x -> getInnerAsList x
-                  Nothing -> [])
-            $ functionInner fd
-      retType = renderFunctionReturnType (qualType $ returnType fd)
-  in unlines
-     [ "foreign import capi \""++fp++" "++funcName++"\""
-     , "    "++funcName++" :: "++sig++"IO ("++retType++")"
-     ]
+      sig      = renderParamTypeSignature
+                 $ (\case
+                       Just x -> getInnerAsList x
+                       Nothing -> [])
+                 $ functionInner fd
+      retType  = renderFunctionReturnType (qualType $ returnType fd)
+  in  unlines  [ "foreign import capi \""++fp++" "++funcName++"\""
+               , "    "++funcName++" :: "++sig++"IO ("++retType++")"
+               ]
 renderASTObject fp (NodeRD rd) =
   case (recordName rd, fields rd) of
-    (Just rn, Just f)
-      -> unlines
-         ([ "{{ struct"
-          , "    "++fp++","
-          , "    "++rn++","
-          ]++renderRecordFields f++[ "}}"])
-    (Just rn, Nothing)
-      -> unlines
-         [ "{{ struct"
-         , "    "++fp++","
-         , "    "++rn
-         , "}}"
-         ]
-    (Nothing, _)
-      -> "!!Unimplemented: Anonymous struct!!"
+    (Just rn, Just f) -> unlines ([ "{{ struct"
+                                  , "    "++fp++","
+                                  , "    "++rn++","
+                                  ]++renderRecordFields f++[ "}}"])
+    (Just rn, Nothing) -> unlines [ "{{ struct"
+                                  , "    "++fp++","
+                                  , "    "++rn
+                                  , "}}"
+                                  ]
+    (Nothing, _) -> "!!Unimplemented: Anonymous struct!!"
 renderASTObject _ _ = "!!Unimplemented AST Object!!"
 
 renderRecordFields :: V.Vector ASTObject -> [String]
 renderRecordFields x = V.toList $ V.map renderRecordField x
 
 renderRecordField :: ASTObject -> String
-renderRecordField (NodeRD _) = "!!Unimplemented Record Field: Nested RecordDecl!!"
-renderRecordField (NodeFiD fd) = "    "++fieldName fd++", "++convertType (qualType $ fieldType fd)++","
+renderRecordField (NodeRD _) =
+  "!!Unimplemented Record Field: Nested RecordDecl!!"
+renderRecordField (NodeFiD fd) =
+  ("    "++fieldName fd++", "
+   ++convertType (qualType $ fieldType fd)++",")
 renderRecordField (NodeFullCmnt _) = ""
 renderRecordField x = "!!Unimplemented Record Field: "++show x++"!!"
 
@@ -199,7 +183,10 @@ getInnerAsList :: V.Vector ASTObject -> [ASTObject]
 getInnerAsList = V.toList
 
 renderParamTypeSignature :: [ASTObject] -> String
-renderParamTypeSignature (NodePVD pv:xs) = convertType (qualType $ parmVarType pv)++" -> "++renderParamTypeSignature xs
+renderParamTypeSignature (NodePVD pv:xs) = convertType
+                                         $ qualType (parmVarType pv)
+                                         ++ " -> "
+                                         ++renderParamTypeSignature xs
 renderParamTypeSignature (_:xs)          = renderParamTypeSignature xs
 renderParamTypeSignature []              = ""
 
@@ -217,8 +204,10 @@ renderEnumConstantDecls d =
   in V.toList $ V.map renderEnumConstantDecl ecdV
 
 renderEnumConstantDecl :: ASTObject -> String
-renderEnumConstantDecl (NodeECD ecd) = "    "++enumConstantName ecd++","
-renderEnumConstantDecl x             = "!!Unimplemented: "++show x++"!!"
+renderEnumConstantDecl (NodeECD ecd) =
+  "    "++enumConstantName ecd++","
+renderEnumConstantDecl x             =
+  "!!Unimplemented: "++show x++"!!"
 
 convertType :: String -> String
 convertType "char"         = "CChar"
@@ -262,35 +251,33 @@ structNameChange = id
 enumNameChange :: String -> String
 enumNameChange = id
 
--- TODO: Parameterize this; users should be able to pass in absolute paths.
+-- TODO: Parameterize this; users should be able to pass in absolute
+-- paths.
 clangExecutable :: String
 clangExecutable = "clang"
 
 invokeClang :: [String] -> IO TranslationUnitDecl
 invokeClang args =
-  let
-    args' = [ "-x"
-            , "c"
-            , "-Xclang"
-            , "-ast-dump=json"
-            , "-fsyntax-only"
-            ] ++ args
-  in
-    do
-      (_, Just hout, _, _) <-
-        createProcess (proc clangExecutable args') { std_out = CreatePipe
-                                                  -- suppress stdErr, which is
-                                                  -- usually a bunch of garbage
-                                                  -- about not finding includes
-                                                  -- 
-                                                  -- might be useful
-                                                  -- though. change eventually
-                                                  , std_err = CreatePipe
-                                                  }
-      contents <- B.hGetContents hout
-      case decode (LB.fromStrict contents) of
-        Just jsonValue -> return jsonValue
-        Nothing        -> return (TranslationUnitDecl (V.fromList []))
+  let args' = [ "-x"
+              , "c"
+              , "-Xclang"
+              , "-ast-dump=json"
+              , "-fsyntax-only"
+              ] ++ args
+  in do
+    (_, Just hout, _, _) <-
+      createProcess (proc clangExecutable args')
+      { std_out = CreatePipe
+      -- suppress stdErr, which is usually a bunch of garbage about
+      -- not finding includes
+      -- 
+      -- might be useful though. change eventually
+      , std_err = CreatePipe
+      }
+    contents <- B.hGetContents hout
+    case decode (LB.fromStrict contents) of
+      Just jsonValue -> return jsonValue
+      Nothing        -> return (TranslationUnitDecl (V.fromList []))
 
 -- Regular old 'fromJson' returns a Result type. I'm not too concerned
 -- about the error portion, so just toss it and return a 'Maybe'.
@@ -304,23 +291,26 @@ convertVals x =
                   resultObjs
     fromSuccess = (\case
                      (Success obj) -> obj
-                     (Error _) -> error "Error somehow bypassed filter")
+                     (Error _) -> error
+                                  "Error somehow bypassed filter")
   in V.map fromSuccess justSuccess
 
--- Don't parse the nodes inside of the syntax tree just yet. First, filter out
--- everything that isn't from the file in question. Then parse and deal with
--- the resultant Vector.
-getASTNodesFromFile :: FilePath -> TranslationUnitDecl -> V.Vector ASTObject
-getASTNodesFromFile fp tu = convertVals $ dropUntilFile fp (syntaxTree tu)
+-- Don't parse the nodes inside of the syntax tree just yet. First,
+-- filter out everything that isn't from the file in question. Then
+-- parse and deal with the resultant Vector.
+getASTNodesFromFile :: FilePath -> TranslationUnitDecl
+                    -> V.Vector ASTObject
+getASTNodesFromFile fp tu = convertVals
+                          $ dropUntilFile fp (syntaxTree tu)
 
 -- Drop nodes
 dropUntilFile :: FilePath -> V.Vector Value -> V.Vector Value
 dropUntilFile fp vv =
-  let
-    getFileLoc = (_Value . key (fromString "loc") . key (fromString "file"))
-    expectedFileLoc = Just (String (T.pack fp))
-  in
-    snd $ V.break (\x -> x ^? getFileLoc == expectedFileLoc) vv
+  let getFileLoc = (_Value
+                    . key (fromString "loc")
+                    . key (fromString "file"))
+      expectedFileLoc = Just (String (T.pack fp))
+  in snd $ V.break (\x -> x ^? getFileLoc == expectedFileLoc) vv
 
 isTypedef :: ASTObject -> Bool
 isTypedef (NodeTD _) = True
@@ -329,20 +319,23 @@ isTypedef _          = False
 -- We want all of the typedefs in the translation unit, not just from
 -- the current file.
 getTypedefsFromTU :: TranslationUnitDecl -> V.Vector ASTObject
-getTypedefsFromTU tu = V.filter isTypedef $ convertVals (syntaxTree tu)
+getTypedefsFromTU tu = V.filter isTypedef
+                     $ convertVals (syntaxTree tu)
 
 invokeAndGetASTNodes :: [String] -> IO (V.Vector ASTObject)
-invokeAndGetASTNodes args = getASTNodesFromFile (last args) <$> invokeClang args
+invokeAndGetASTNodes args = getASTNodesFromFile (last args)
+                            <$> invokeClang args
 
 invokeAndGetTypedefs :: [String] -> IO (V.Vector ASTObject)
-invokeAndGetTypedefs args = getTypedefsFromTU <$> invokeClang args
+invokeAndGetTypedefs args = getTypedefsFromTU
+                            <$> invokeClang args
 
 typedefToTuple :: ASTObject -> (String, String)
 typedefToTuple (NodeTD x) =
   let tdName = typeDefName x
-      tdt  = typeDefType x
-      qt   = qualType tdt
-      dqt  = desugaredQualType tdt
+      tdt    = typeDefType x
+      qt     = qualType tdt
+      dqt    = desugaredQualType tdt
   in case dqt of
     Just t  -> (tdName, t)
     Nothing -> (tdName, qt)
@@ -362,11 +355,11 @@ typedefsMap = M.fromList . V.toList . V.map typedefToTuple
 -- nested typedefs if they are to occur.
 unfurlTypedefs :: M.Map String String -> DeclType -> DeclType
 unfurlTypedefs tdMap dt =
-  let qt = qualType dt
+  let qt  = qualType dt
       dqt = desugaredQualType dt
-      t = case dqt of
-            Just x  -> x
-            Nothing -> qt
+      t   = case dqt of
+              Just x  -> x
+              Nothing -> qt
       resolvedType = M.lookup t tdMap
   in case resolvedType of
        Just rt -> unfurlTypedefs tdMap $ DeclType rt Nothing
@@ -384,4 +377,44 @@ everything x =
   in renderAll fp (invokeAndGetASTNodes x)
 
 _clangArgs :: [String]
-_clangArgs = ["-DWLR_USE_UNSTABLE", "-I/home/dylan/Development/wlroots/tinywl", "-I/gnu/store/7vs22p1alhs721lfv3v22h09md6gsxb8-wayland-1.22.0/include", "-I/gnu/store/zdn2b0glrrfw08dzif3ziijw2rl1jfj2-libxkbcommon-1.6.0/include", "-I/gnu/store/9hs4p558s17yvl9rw9ky5ygfbmc4jdgc-pixman-0.42.2/include/pixman-1", "-I/gnu/store/acf5nffb6f1z3x5q0b3i1pwmzkvx51sc-mesa-24.0.4/include", "-I/gnu/store/d2w7iyqzkgwkyn9cmz8asna4k7a26gs2-libxfixes-6.0.0/include", "-I/gnu/store/yb81b92lsn0aixvnz1qw5x8xs05gj3dz-libx11-1.8.7/include", "-I/gnu/store/amzj6l8yr8llh3gqnkdskmrwqh31krjl-libxcb-1.15/include", "-I/gnu/store/qsjkhchjhlca4gms9b4v43afb0mrw2fa-libxxf86vm-1.1.4/include", "-I/gnu/store/71y51h0kyd2hp1yfhfmkmlpaqi326c6q-libxext-1.3.4/include", "-I/gnu/store/yb81b92lsn0aixvnz1qw5x8xs05gj3dz-libx11-1.8.7/include", "-I/gnu/store/kld1hhkfi8v61bmjvqbm0igp1a6dww4q-libdrm-2.4.120/include", "-I/gnu/store/kld1hhkfi8v61bmjvqbm0igp1a6dww4q-libdrm-2.4.120/include/libdrm", "-I/gnu/store/acf5nffb6f1z3x5q0b3i1pwmzkvx51sc-mesa-24.0.4/include", "-I/gnu/store/j1yqdjchjj2md4r3cfkmbpxkcva5ahqy-elogind-252.9/include/elogind", "-I/gnu/store/7vs22p1alhs721lfv3v22h09md6gsxb8-wayland-1.22.0/include", "-I/gnu/store/1lzfbbwcpyngm81v44fr34253b8is7zr-libffi-3.4.4/include", "-I/gnu/store/amzj6l8yr8llh3gqnkdskmrwqh31krjl-libxcb-1.15/include", "-I/gnu/store/482998zixfp5nkb1dyf5znj4vvqmkh8n-libxau-1.0.10/include", "-I/gnu/store/4h67m2s2nsy0a8hp0miwz3mpjn6rxb15-libxdmcp-1.1.3/include", "-I/gnu/store/xsy1q53sb5iv1mp7ihv3il4n7nbvgbqr-xorgproto-2023.2/include", "-I/gnu/store/4lfxl1c944fn4jw7306y05nwi10jmgl3-wlroots-0.17.1/include", "-I/gnu/store/66xp495ibhhnc3f95f6z8n97j176h8mm-eudev-3.2.14/include", "-I/gnu/store/75zsndb0g9z4700yrhwbfyaxins1sqad-libseat-0.7.0/include", "-I/gnu/store/6cab9rrsi5zwqfn2biylibqrmzbnbvfw-libdisplay-info-0.2.0-dev-0.ebee359/include", "-I/gnu/store/dka9hd1jgbxpfxy94mslhfbcv7b94fis-libinput-minimal-1.22.1/include", "-I/gnu/store/vmkvapcpppnd3xzqqy3qpi3kcpslv47q-xcb-util-wm-0.4.1/include", "-I/gnu/store/j49knm9grnjfin9hzhqzial405jpxybg-xcb-util-errors-1.0-1.5d660eb/include", "-L/gnu/store/4lfxl1c944fn4jw7306y05nwi10jmgl3-wlroots-0.17.1/lib", "-lwlroots", "-I/gnu/store/7vs22p1alhs721lfv3v22h09md6gsxb8-wayland-1.22.0/include", "-I/gnu/store/1lzfbbwcpyngm81v44fr34253b8is7zr-libffi-3.4.4/include", "-L/gnu/store/7vs22p1alhs721lfv3v22h09md6gsxb8-wayland-1.22.0/lib", "-lwayland-server", "-I/gnu/store/zdn2b0glrrfw08dzif3ziijw2rl1jfj2-libxkbcommon-1.6.0/include", "-L/gnu/store/zdn2b0glrrfw08dzif3ziijw2rl1jfj2-libxkbcommon-1.6.0/lib", "-lxkbcommon", "../wlroots/include/wlr/types/wlr_output.h"]
+_clangArgs =
+  [ "-DWLR_USE_UNSTABLE"
+  , "-I/home/dylan/Development/wlroots/tinywl"
+  , "-I/gnu/store/7vs22p1alhs721lfv3v22h09md6gsxb8-wayland-1.22.0/include"
+  , "-I/gnu/store/zdn2b0glrrfw08dzif3ziijw2rl1jfj2-libxkbcommon-1.6.0/include"
+  , "-I/gnu/store/9hs4p558s17yvl9rw9ky5ygfbmc4jdgc-pixman-0.42.2/include/pixman-1"
+  , "-I/gnu/store/acf5nffb6f1z3x5q0b3i1pwmzkvx51sc-mesa-24.0.4/include"
+  , "-I/gnu/store/d2w7iyqzkgwkyn9cmz8asna4k7a26gs2-libxfixes-6.0.0/include"
+  , "-I/gnu/store/yb81b92lsn0aixvnz1qw5x8xs05gj3dz-libx11-1.8.7/include"
+  , "-I/gnu/store/amzj6l8yr8llh3gqnkdskmrwqh31krjl-libxcb-1.15/include"
+  , "-I/gnu/store/qsjkhchjhlca4gms9b4v43afb0mrw2fa-libxxf86vm-1.1.4/include"
+  , "-I/gnu/store/71y51h0kyd2hp1yfhfmkmlpaqi326c6q-libxext-1.3.4/include"
+  , "-I/gnu/store/yb81b92lsn0aixvnz1qw5x8xs05gj3dz-libx11-1.8.7/include"
+  , "-I/gnu/store/kld1hhkfi8v61bmjvqbm0igp1a6dww4q-libdrm-2.4.120/include"
+  , "-I/gnu/store/kld1hhkfi8v61bmjvqbm0igp1a6dww4q-libdrm-2.4.120/include/libdrm"
+  , "-I/gnu/store/acf5nffb6f1z3x5q0b3i1pwmzkvx51sc-mesa-24.0.4/include"
+  , "-I/gnu/store/j1yqdjchjj2md4r3cfkmbpxkcva5ahqy-elogind-252.9/include/elogind"
+  , "-I/gnu/store/7vs22p1alhs721lfv3v22h09md6gsxb8-wayland-1.22.0/include"
+  , "-I/gnu/store/1lzfbbwcpyngm81v44fr34253b8is7zr-libffi-3.4.4/include"
+  , "-I/gnu/store/amzj6l8yr8llh3gqnkdskmrwqh31krjl-libxcb-1.15/include"
+  , "-I/gnu/store/482998zixfp5nkb1dyf5znj4vvqmkh8n-libxau-1.0.10/include"
+  , "-I/gnu/store/4h67m2s2nsy0a8hp0miwz3mpjn6rxb15-libxdmcp-1.1.3/include"
+  , "-I/gnu/store/xsy1q53sb5iv1mp7ihv3il4n7nbvgbqr-xorgproto-2023.2/include"
+  , "-I/gnu/store/4lfxl1c944fn4jw7306y05nwi10jmgl3-wlroots-0.17.1/include"
+  , "-I/gnu/store/66xp495ibhhnc3f95f6z8n97j176h8mm-eudev-3.2.14/include"
+  , "-I/gnu/store/75zsndb0g9z4700yrhwbfyaxins1sqad-libseat-0.7.0/include"
+  , "-I/gnu/store/6cab9rrsi5zwqfn2biylibqrmzbnbvfw-libdisplay-info-0.2.0-dev-0.ebee359/include"
+  , "-I/gnu/store/dka9hd1jgbxpfxy94mslhfbcv7b94fis-libinput-minimal-1.22.1/include"
+  , "-I/gnu/store/vmkvapcpppnd3xzqqy3qpi3kcpslv47q-xcb-util-wm-0.4.1/include"
+  , "-I/gnu/store/j49knm9grnjfin9hzhqzial405jpxybg-xcb-util-errors-1.0-1.5d660eb/include"
+  , "-L/gnu/store/4lfxl1c944fn4jw7306y05nwi10jmgl3-wlroots-0.17.1/lib"
+  , "-lwlroots"
+  , "-I/gnu/store/7vs22p1alhs721lfv3v22h09md6gsxb8-wayland-1.22.0/include"
+  , "-I/gnu/store/1lzfbbwcpyngm81v44fr34253b8is7zr-libffi-3.4.4/include"
+  , "-L/gnu/store/7vs22p1alhs721lfv3v22h09md6gsxb8-wayland-1.22.0/lib"
+  , "-lwayland-server"
+  , "-I/gnu/store/zdn2b0glrrfw08dzif3ziijw2rl1jfj2-libxkbcommon-1.6.0/include"
+  , "-L/gnu/store/zdn2b0glrrfw08dzif3ziijw2rl1jfj2-libxkbcommon-1.6.0/lib"
+  , "-lxkbcommon"
+  , "../wlroots/include/wlr/types/wlr_output.h"
+  ]
