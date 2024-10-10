@@ -11,7 +11,7 @@ main :: IO ()
 main = do
   env <- loadEnv
   let str = runReader renderAll env :: String
-  print str
+  putStrLn str
   return ()
 
 loadEnv :: IO Env
