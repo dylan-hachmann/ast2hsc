@@ -398,7 +398,8 @@ convertVals x =
             (Success obj) -> obj
             (Error _) ->
               error
-                "Error somehow bypassed filter"
+                "Error somehow bypassed filter" --how do I avoid this
+                                                --nonsense? :/
         )
    in V.map fromSuccess justSuccess
 
