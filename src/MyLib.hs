@@ -13,13 +13,12 @@ import Data.Aeson.Lens
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Map.Lazy as M
+import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import GHC.Generics
-import System.Process
 import System.IO
-import Data.Maybe
-
+import System.Process
 
 data Env = Env
   { getFilePath :: FilePath,
@@ -27,7 +26,6 @@ data Env = Env
     getASTNodes :: V.Vector ASTObject
   }
   deriving (Show)
-
 
 -- * AST decoding
 
@@ -196,9 +194,8 @@ instance FromJSON ASTObject where
       _ ->
         do return (NodeUnimpl Unimplemented {kind})
 
-
-
 -- * Rendering
+
 renderASTObject :: FilePath -> ASTObject -> Reader Env String
 renderASTObject _ (NodeUnimpl _) = return ""
 renderASTObject _ (NodeED ed) =
@@ -366,7 +363,6 @@ structNameChange = id
 enumNameChange :: String -> String
 enumNameChange = id
 
-
 -- * Process AST
 
 -- Regular old 'fromJson' returns a Result type. I'm not too concerned
@@ -386,8 +382,8 @@ convertVals x =
             (Success obj) -> obj
             (Error _) ->
               error
-                "Error somehow bypassed filter" --how do I avoid this
-                                                --nonsense? :/
+                "Error somehow bypassed filter" -- how do I avoid this
+                -- nonsense? :/
         )
    in V.map fromSuccess justSuccess
 
@@ -402,28 +398,28 @@ getASTNodesFromFile fp tu =
   convertVals $
     dropUntilFile fp (syntaxTree tu)
 
-
 -- At the start of each file, the first ASTNode usually seems to have:
 --
 -- "loc: { file: x }".
 --
 -- I'm not sure how reliable this is
-getLocFile :: AsValue s => s -> Maybe Value
+getLocFile :: (AsValue s) => s -> Maybe Value
 getLocFile x =
-  x ^? ( _Value . key (fromString "loc") . key (fromString "file") )
+  x ^? (_Value . key (fromString "loc") . key (fromString "file"))
 
 getFilesInTU :: TranslationUnitDecl -> [String]
-getFilesInTU TranslationUnitDecl{syntaxTree=vv} =
+getFilesInTU TranslationUnitDecl {syntaxTree = vv} =
   let valueList = V.toList vv
       fileValues = mapMaybe getLocFile valueList
-  in map (\(String x) -> T.unpack x) fileValues
+   in map (\(String x) -> T.unpack x) fileValues
 
 dropUntilFile :: FilePath -> V.Vector Value -> V.Vector Value
 dropUntilFile fp vv =
   let expectedFileLoc = Just (String (T.pack fp))
-  in snd $ V.break (\x -> getLocFile x == expectedFileLoc) vv
+   in snd $ V.break (\x -> getLocFile x == expectedFileLoc) vv
 
 -- * Typedefs
+
 isTypedef :: ASTObject -> Bool
 isTypedef (NodeTD _) = True
 isTypedef _ = False
@@ -493,7 +489,6 @@ decodeTypedefs :: Handle -> IO (V.Vector ASTObject)
 decodeTypedefs h =
   getTypedefsFromTU <$> decodeFromHandle h
 
-
 -- * Higher-level convenience
 
 renderAll :: Reader Env String
@@ -513,19 +508,19 @@ _invokeClang args =
           "-ast-dump=json",
           "-fsyntax-only"
         ]
-        <> args
-  in do
-    (_, Just hout, _, _) <-
-      createProcess
-      (proc clangExecutable args')
-      { std_out = CreatePipe,
-        -- Suppress stdErr, which is often a bunch of useless garbage about not
-        -- finding includes.
-        --
-        -- Might be useful though. May change eventually.
-        std_err = CreatePipe
-      }
-    return hout
+          <> args
+   in do
+        (_, Just hout, _, _) <-
+          createProcess
+            (proc clangExecutable args')
+              { std_out = CreatePipe,
+                -- Suppress stdErr, which is often a bunch of useless garbage about not
+                -- finding includes.
+                --
+                -- Might be useful though. May change eventually.
+                std_err = CreatePipe
+              }
+        return hout
 
 _clangArgs :: [String]
 _clangArgs =

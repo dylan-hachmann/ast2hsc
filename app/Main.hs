@@ -16,9 +16,10 @@ loadEnv :: IO Env
 loadEnv = do
   args <- getArgs
   -- Either read from stdin or get the first arg
-  fileHandle <- if null args
-                then return stdin
-                else openFile (head args) ReadMode
+  fileHandle <-
+    if null args
+      then return stdin
+      else openFile (head args) ReadMode
   translationUnitDecl <- decodeFromHandle fileHandle
   let header = last $ getFilesInTU translationUnitDecl
   tdMap <- getTypedefsMap (return translationUnitDecl)
