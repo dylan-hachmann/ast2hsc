@@ -7,6 +7,7 @@
 module MyLib where
 
 import Control.Lens
+import Control.Monad.Trans.Reader
 import Data.Aeson
 import Data.Aeson.Key
 import Data.Aeson.Lens
@@ -439,16 +440,22 @@ unfurlTypedefs tdMap dt =
         Just rt -> unfurlTypedefs tdMap $ DeclType rt Nothing
         Nothing -> DeclType t Nothing
 
-renderAll :: FilePath -> IO (V.Vector ASTObject) -> IO String
-renderAll fp ast = do
-  astObjs <- getInnerAsList <$> ast
+data Env = Env
+  { getFilePath :: FilePath,
+    getTdMap :: M.Map String String,
+    getASTNodes :: V.Vector ASTObject
+  }
+  deriving (Show)
+
+
+renderAll :: Reader Env String
+renderAll = do
+  ast <- asks getASTNodes
+  fp <- asks getFilePath
+  let astObjs = getInnerAsList ast
   let renders = map (renderASTObject fp) astObjs
   return (unlines renders)
 
-everything :: [String] -> IO String
-everything x =
-  let fp = last x
-   in renderAll fp (invokeAndGetASTNodes x)
 
 _clangArgs :: [String]
 _clangArgs =
