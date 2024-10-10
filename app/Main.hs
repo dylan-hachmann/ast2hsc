@@ -1,12 +1,9 @@
 module Main where
 
 import Control.Monad.Trans.Reader
-import qualified Data.Map as M
-import qualified Data.Vector as V
 import MyLib
 import System.Environment (getArgs)
 import System.IO
-import Text.Pretty.Simple
 
 main :: IO ()
 main = do
@@ -17,7 +14,12 @@ main = do
 
 loadEnv :: IO Env
 loadEnv = do
-  translationUnitDecl <- decodeFromHandle stdin
+  args <- getArgs
+  -- Either read from stdin or get the first arg
+  fileHandle <- if null args
+                then return stdin
+                else openFile (head args) ReadMode
+  translationUnitDecl <- decodeFromHandle fileHandle
   let header = last $ getFilesInTU translationUnitDecl
   tdMap <- getTypedefsMap (return translationUnitDecl)
   let astNodes = getASTNodesFromFile header translationUnitDecl
