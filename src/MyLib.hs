@@ -310,7 +310,15 @@ convertType ('e' : 'n' : 'u' : 'm' : xs) =
     [x] -> enumNameChange x
     _ -> "!!Unimplemented enum type: enum" ++ xs ++ "!!"
 convertType ('c' : 'o' : 'n' : 's' : 't' : ' ' : xs) = convertType xs
-convertType x = return $ "!!Unimplemented: " ++ x ++ "!!"
+convertType x = do
+  tdMap <- asks getTdMap
+  let x' = M.lookup x tdMap
+  case x' of
+    Nothing -> return $ "!!Unimplemented: " ++ x ++ "!!"
+    Just x'' ->
+      if x'' /= x
+        then convertType x''
+        else return $ "!!Unimplemented: " ++ x ++ "!!"
 
 -- TODO: Capitalize first thing before _
 structNameChange :: String -> String
