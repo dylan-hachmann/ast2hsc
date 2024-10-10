@@ -190,16 +190,16 @@ renderASTObject _ (NodeED ed) =
     Nothing ->
       unlines
         [ "{{ enum",
-          "    " ++ enumName ed,
+          "    " <> enumName ed,
           "}}"
         ]
     Just x ->
       unlines
         ( [ "{{ enum",
-            "    " ++ enumName ed ++ ","
+            "    " <> enumName ed <> ","
           ]
-            ++ renderEnumConstantDecls x
-            ++ ["}}"]
+            <> renderEnumConstantDecls x
+            <> ["}}"]
         )
 renderASTObject fp (NodeFuD fd) =
   do
@@ -214,8 +214,8 @@ renderASTObject fp (NodeFuD fd) =
     retType <- renderFunctionReturnType (qualType $ returnType fd)
     return $
       unlines
-        [ "foreign import capi \"" ++ fp ++ " " ++ funcName ++ "\"",
-          "    " ++ funcName ++ " :: " ++ sig ++ "IO (" ++ retType ++ ")"
+        [ "foreign import capi \"" <> fp <> " " <> funcName <> "\"",
+          "    " <> funcName <> " :: " <> sig <> "IO (" <> retType <> ")"
         ]
 renderASTObject fp (NodeRD rd) =
   case (recordName rd, fields rd) of
@@ -225,18 +225,18 @@ renderASTObject fp (NodeRD rd) =
         return $
           unlines
             ( [ "{{ struct",
-                "    " ++ fp ++ ",",
-                "    " ++ rn ++ ","
+                "    " <> fp <> ",",
+                "    " <> rn <> ","
               ]
-                ++ fields
-                ++ ["}}"]
+                <> fields
+                <> ["}}"]
             )
     (Just rn, Nothing) ->
       return $
         unlines
           [ "{{ struct",
-            "    " ++ fp ++ ",",
-            "    " ++ rn,
+            "    " <> fp <> ",",
+            "    " <> rn,
             "}}"
           ]
     (Nothing, _) -> return "!!Unimplemented: Anonymous struct!!"
@@ -256,13 +256,13 @@ renderRecordField (NodeFiD fd) = do
   t <- convertType (qualType $ fieldType fd)
   return
     ( "    "
-        ++ fieldName fd
-        ++ ", "
-        ++ t
-        ++ ","
+        <> fieldName fd
+        <> ", "
+        <> t
+        <> ","
     )
 renderRecordField (NodeFullCmnt _) = return ""
-renderRecordField x = return $ "!!Unimplemented Record Field: " ++ show x ++ "!!"
+renderRecordField x = return $ "!!Unimplemented Record Field: " <> show x <> "!!"
 
 getInnerAsList :: V.Vector ASTObject -> [ASTObject]
 getInnerAsList = V.toList
@@ -271,7 +271,7 @@ renderParamTypeSignature :: [ASTObject] -> Reader Env String
 renderParamTypeSignature (NodePVD pv : xs) = do
   x <- renderParamTypeSignature xs
   t <- convertType (qualType (parmVarType pv))
-  return (t ++ " -> " ++ x)
+  return (t <> " -> " <> x)
 renderParamTypeSignature (_ : xs) = renderParamTypeSignature xs
 renderParamTypeSignature [] = return $ ""
 
@@ -295,9 +295,9 @@ renderEnumConstantDecls dV =
 
 renderEnumConstantDecl :: ASTObject -> String
 renderEnumConstantDecl (NodeECD ecd) =
-  "    " ++ enumConstantName ecd ++ ","
+  "    " <> enumConstantName ecd <> ","
 renderEnumConstantDecl x =
-  "!!Unimplemented: " ++ show x ++ "!!"
+  "!!Unimplemented: " <> show x <> "!!"
 
 convertType :: String -> Reader Env String
 convertType "char" = return "CChar"
@@ -322,25 +322,25 @@ convertType "void *" = return "Ptr ()"
 convertType "void **" = return "Ptr (Ptr ())"
 convertType ('s' : 't' : 'r' : 'u' : 'c' : 't' : xs) =
   return $ case words xs of
-    [x, "*"] -> "Ptr " ++ structNameChange x
-    [x, "**"] -> "Ptr (Ptr " ++ structNameChange x ++ ")"
+    [x, "*"] -> "Ptr " <> structNameChange x
+    [x, "**"] -> "Ptr (Ptr " <> structNameChange x <> ")"
     [x] -> structNameChange x
-    _ -> "!!Unimplemented struct type: struct" ++ xs ++ "!!"
+    _ -> "!!Unimplemented struct type: struct" <> xs <> "!!"
 convertType ('e' : 'n' : 'u' : 'm' : xs) =
   return $ case words xs of
-    [x, "*"] -> "Ptr " ++ enumNameChange x
+    [x, "*"] -> "Ptr " <> enumNameChange x
     [x] -> enumNameChange x
-    _ -> "!!Unimplemented enum type: enum" ++ xs ++ "!!"
+    _ -> "!!Unimplemented enum type: enum" <> xs <> "!!"
 convertType ('c' : 'o' : 'n' : 's' : 't' : ' ' : xs) = convertType xs
 convertType x = do
   tdMap <- asks getTdMap
   let x' = M.lookup x tdMap
   case x' of
-    Nothing -> return $ "!!Unimplemented: " ++ x ++ "!!"
+    Nothing -> return $ "!!Unimplemented: " <> x <> "!!"
     Just x'' ->
       if x'' /= x
         then convertType x''
-        else return $ "!!Unimplemented: " ++ x'' ++ "!!"
+        else return $ "!!Unimplemented: " <> x'' <> "!!"
 
 -- TODO: Capitalize first thing before _
 structNameChange :: String -> String
@@ -364,7 +364,7 @@ invokeClang args =
           "-ast-dump=json",
           "-fsyntax-only"
         ]
-          ++ args
+          <> args
    in do
         (_, Just hout, _, _) <-
           createProcess
