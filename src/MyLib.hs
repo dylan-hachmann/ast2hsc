@@ -222,7 +222,7 @@ convertType ('s':'t':'r':'u':'c':'t':xs) =
   _        -> "!!Unimplemented struct type: struct"++xs++"!!"
 convertType x = "!!Unimplimented: "++x++"!!"
 
--- TODO: Capitlalize firest thing before _
+-- TODO: Capitalize first thing before _
 structNameChange :: String -> String
 structNameChange = id
 
@@ -243,34 +243,6 @@ invokeClang args =
     do
       (_, Just hout, _, _) <-
         createProcess (proc clangExecutable args') { std_out = CreatePipe
-                                                  -- suppress stdErr, which is
-                                                  -- usually a bunch of garbage
-                                                  -- about not finding includes
-                                                  -- 
-                                                  -- might be useful
-                                                  -- though. change eventually
-                                                  , std_err = CreatePipe
-                                                  }
-      contents <- B.hGetContents hout
-      let (Just jsonValue) = decode (LB.fromStrict contents)
-      return jsonValue
-
-invokeClang' :: FilePath -> IO ASTObject
-invokeClang' headerFile =
-  let
-    args = [ "-x"
-           , "c"
-           , "-Xclang"
-           , "-ast-dump=json"
-           , "-fsyntax-only"
-           , "-I"
-           , "/home/dylan/wlroots/include/" -- TODO: pass this in
-           , headerFile
-           ]
-  in
-    do
-      (_, Just hout, _, _) <-
-        createProcess (proc clangExecutable args) { std_out = CreatePipe
                                                   -- suppress stdErr, which is
                                                   -- usually a bunch of garbage
                                                   -- about not finding includes
