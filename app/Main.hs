@@ -311,7 +311,7 @@ renderParamTypeSignature (NodePVD pv : xs) = do
   t <- convertType (qualType (parmVarType pv))
   return (t <> " -> " <> x)
 renderParamTypeSignature (_ : xs) = renderParamTypeSignature xs
-renderParamTypeSignature [] = return $ ""
+renderParamTypeSignature [] = return ""
 
 -- This is wrong!!! May be good enough for now but must fix eventually
 renderFunctionReturnType :: String -> Reader Env String
@@ -468,9 +468,7 @@ typedefToTuple (NodeTD x) =
 typedefToTuple _ = error "ASTObject isn't a typedef!"
 
 getTypedefsMap :: IO TranslationUnitDecl -> IO (M.Map String String)
-getTypedefsMap tud = do
-  x <- tud
-  return (typedefsMap $ getTypedefsFromTU x)
+getTypedefsMap tud = typedefsMap . getTypedefsFromTU <$> tud
 
 typedefsMap :: V.Vector ASTObject -> M.Map String String
 typedefsMap = M.fromList . V.toList . V.map typedefToTuple
