@@ -1,4 +1,5 @@
 module Main where
+
 import Control.Monad.Trans.Reader
 import qualified Data.Map as M
 import qualified Data.Vector as V

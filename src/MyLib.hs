@@ -164,10 +164,10 @@ instance FromJSON ASTObject where
       _ ->
         do return (NodeUnimpl Unimplemented {kind})
 
-renderASTObject :: FilePath -> ASTObject -> String
-renderASTObject _ (NodeUnimpl _) = ""
+renderASTObject :: FilePath -> ASTObject -> Reader Env String
+renderASTObject _ (NodeUnimpl _) = return ""
 renderASTObject _ (NodeED ed) =
-  case enumInner ed of
+  return $ case enumInner ed of
     Nothing ->
       unlines
         [ "{{ enum",
@@ -183,69 +183,79 @@ renderASTObject _ (NodeED ed) =
             ++ ["}}"]
         )
 renderASTObject fp (NodeFuD fd) =
-  let funcName = name fd
-      sig =
-        renderParamTypeSignature
-          $ ( \case
-                Just x -> getInnerAsList x
-                Nothing -> []
-            )
-          $ functionInner fd
-      retType = renderFunctionReturnType (qualType $ returnType fd)
-   in unlines
+  do
+    let funcName = name fd
+    sig <-
+      renderParamTypeSignature
+        $ ( \case
+              Just x -> getInnerAsList x
+              Nothing -> []
+          )
+        $ functionInner fd
+    retType <- renderFunctionReturnType (qualType $ returnType fd)
+    return $
+      unlines
         [ "foreign import capi \"" ++ fp ++ " " ++ funcName ++ "\"",
           "    " ++ funcName ++ " :: " ++ sig ++ "IO (" ++ retType ++ ")"
         ]
 renderASTObject fp (NodeRD rd) =
   case (recordName rd, fields rd) of
     (Just rn, Just f) ->
-      unlines
-        ( [ "{{ struct",
-            "    " ++ fp ++ ",",
-            "    " ++ rn ++ ","
-          ]
-            ++ renderRecordFields f
-            ++ ["}}"]
-        )
+      do
+        fields <- renderRecordFields f
+        return $
+          unlines
+            ( [ "{{ struct",
+                "    " ++ fp ++ ",",
+                "    " ++ rn ++ ","
+              ]
+                ++ fields
+                ++ ["}}"]
+            )
     (Just rn, Nothing) ->
-      unlines
-        [ "{{ struct",
-          "    " ++ fp ++ ",",
-          "    " ++ rn,
-          "}}"
-        ]
-    (Nothing, _) -> "!!Unimplemented: Anonymous struct!!"
-renderASTObject _ _ = "!!Unimplemented AST Object!!"
+      return $
+        unlines
+          [ "{{ struct",
+            "    " ++ fp ++ ",",
+            "    " ++ rn,
+            "}}"
+          ]
+    (Nothing, _) -> return "!!Unimplemented: Anonymous struct!!"
+renderASTObject _ _ = return "!!Unimplemented AST Object!!"
 
-renderRecordFields :: V.Vector ASTObject -> [String]
-renderRecordFields x = V.toList $ V.map renderRecordField x
+renderRecordFields :: V.Vector ASTObject -> Reader Env [String]
+renderRecordFields x =
+  let u = V.map renderRecordField x
+      v = sequence u
+   in mapReader V.toList v
 
-renderRecordField :: ASTObject -> String
+renderRecordField :: ASTObject -> Reader Env String
 renderRecordField (NodeRD _) =
-  "!!Unimplemented Record Field: Nested RecordDecl!!"
-renderRecordField (NodeFiD fd) =
-  "    "
-    ++ fieldName fd
-    ++ ", "
-    ++ convertType (qualType $ fieldType fd)
-    ++ ","
-renderRecordField (NodeFullCmnt _) = ""
-renderRecordField x = "!!Unimplemented Record Field: " ++ show x ++ "!!"
+  return "!!Unimplemented Record Field: Nested RecordDecl!!"
+renderRecordField (NodeFiD fd) = do
+  t <- convertType (qualType $ fieldType fd)
+  return
+    ( "    "
+        ++ fieldName fd
+        ++ ", "
+        ++ t
+        ++ ","
+    )
+renderRecordField (NodeFullCmnt _) = return ""
+renderRecordField x = return $ "!!Unimplemented Record Field: " ++ show x ++ "!!"
 
 getInnerAsList :: V.Vector ASTObject -> [ASTObject]
 getInnerAsList = V.toList
 
-renderParamTypeSignature :: [ASTObject] -> String
-renderParamTypeSignature (NodePVD pv : xs) =
-  convertType $
-    qualType (parmVarType pv)
-      ++ " -> "
-      ++ renderParamTypeSignature xs
+renderParamTypeSignature :: [ASTObject] -> Reader Env String
+renderParamTypeSignature (NodePVD pv : xs) = do
+  x <- renderParamTypeSignature xs
+  convertType $ qualType (parmVarType pv) ++ " -> " ++ x
 renderParamTypeSignature (_ : xs) = renderParamTypeSignature xs
-renderParamTypeSignature [] = ""
+renderParamTypeSignature [] = return $ ""
 
 -- This is wrong!!! May be good enough for now but must fix eventually
-renderFunctionReturnType :: String -> String
+renderFunctionReturnType :: String -> Reader Env String
 renderFunctionReturnType = convertType . strip . takeWhile (/= '(')
   where
     strip = unwords . words
@@ -268,39 +278,39 @@ renderEnumConstantDecl (NodeECD ecd) =
 renderEnumConstantDecl x =
   "!!Unimplemented: " ++ show x ++ "!!"
 
-convertType :: String -> String
-convertType "char" = "CChar"
-convertType "char *" = "Ptr CChar"
-convertType "bool" = "CBool"
-convertType "_Bool" = "CBool"
-convertType "double" = "CDouble"
-convertType "float" = "CFloat"
-convertType "int" = "CInt"
-convertType "int *" = "Ptr CInt"
-convertType "size_t" = "CSize"
-convertType "size_t *" = "Ptr CSize"
-convertType "unsigned int" = "CUInt"
-convertType "uint16_t" = "Word16"
-convertType "uint16_t *" = "Ptr Word16"
-convertType "int32_t" = "Int32"
-convertType "uint32_t" = "Word32"
-convertType "uint32_t *" = "Ptr Word32"
-convertType "void" = ""
-convertType "void *" = "Ptr ()"
-convertType "void **" = "Ptr (Ptr ())"
+convertType :: String -> Reader Env String
+convertType "char" = return "CChar"
+convertType "char *" = return "Ptr CChar"
+convertType "bool" = return "CBool"
+convertType "_Bool" = return "CBool"
+convertType "double" = return "CDouble"
+convertType "float" = return "CFloat"
+convertType "int" = return "CInt"
+convertType "int *" = return "Ptr CInt"
+convertType "size_t" = return "CSize"
+convertType "size_t *" = return "Ptr CSize"
+convertType "unsigned int" = return "CUInt"
+convertType "uint16_t" = return "Word16"
+convertType "uint16_t *" = return "Ptr Word16"
+convertType "int32_t" = return "Int32"
+convertType "uint32_t" = return "Word32"
+convertType "uint32_t *" = return "Ptr Word32"
+convertType "void" = return ""
+convertType "void *" = return "Ptr ()"
+convertType "void **" = return "Ptr (Ptr ())"
 convertType ('s' : 't' : 'r' : 'u' : 'c' : 't' : xs) =
-  case words xs of
+  return $ case words xs of
     [x, "*"] -> "Ptr " ++ structNameChange x
     [x, "**"] -> "Ptr (Ptr " ++ structNameChange x ++ ")"
     [x] -> structNameChange x
     _ -> "!!Unimplemented struct type: struct" ++ xs ++ "!!"
 convertType ('e' : 'n' : 'u' : 'm' : xs) =
-  case words xs of
+  return $ case words xs of
     [x, "*"] -> "Ptr " ++ enumNameChange x
     [x] -> enumNameChange x
     _ -> "!!Unimplemented enum type: enum" ++ xs ++ "!!"
 convertType ('c' : 'o' : 'n' : 's' : 't' : ' ' : xs) = convertType xs
-convertType x = "!!Unimplemented: " ++ x ++ "!!"
+convertType x = return $ "!!Unimplemented: " ++ x ++ "!!"
 
 -- TODO: Capitalize first thing before _
 structNameChange :: String -> String
@@ -447,15 +457,13 @@ data Env = Env
   }
   deriving (Show)
 
-
 renderAll :: Reader Env String
 renderAll = do
   ast <- asks getASTNodes
   fp <- asks getFilePath
   let astObjs = getInnerAsList ast
-  let renders = map (renderASTObject fp) astObjs
+  renders <- mapM (renderASTObject fp) astObjs
   return (unlines renders)
-
 
 _clangArgs :: [String]
 _clangArgs =
