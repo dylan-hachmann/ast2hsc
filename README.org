@@ -20,8 +20,8 @@ in WLHS.
   ast2hsc header_file_to_bind_to.json
 #+end_src
 
-I'm not sure if there's any substantial differences in the AST between
-recent versions of clang, but I've been using clang-18.
+I'm not sure if there are any substantial differences in the AST
+between recent versions of clang, but I've been using clang-18.
 
 ** Contributing
 If you'd like to help, there's still so much that can be done. In
