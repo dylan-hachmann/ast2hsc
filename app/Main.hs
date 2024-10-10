@@ -1,15 +1,17 @@
 module Main where
 
-import MyLib
-import Text.Pretty.Simple
 import Control.Monad.Trans.Reader
-import qualified Data.Vector as V
 import qualified Data.Map as M
+import qualified Data.Vector as V
+import MyLib
 import System.Environment (getArgs)
+import Text.Pretty.Simple
 
-data Env = Env { getTdMap :: M.Map String String
-               , getASTNodes :: V.Vector ASTObject
-               } deriving Show
+data Env = Env
+  { getTdMap :: M.Map String String,
+    getASTNodes :: V.Vector ASTObject
+  }
+  deriving (Show)
 
 main :: IO ()
 main = do
