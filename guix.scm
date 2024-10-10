@@ -39,7 +39,8 @@
                      #:recursive? #t))
  (native-inputs (list ghc-aeson
                       ghc-lens
-                      ghc-lens-aeson))
+                      ghc-lens-aeson
+		      ghc-pretty-simple))
  (build-system haskell-build-system)
  (home-page "nil")
  (synopsis "nil")

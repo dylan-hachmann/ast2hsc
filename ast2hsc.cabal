@@ -100,7 +100,8 @@ executable ast2hsc
     -- Other library packages from which modules are imported.
     build-depends:
         base,
-        ast2hsc
+        ast2hsc,
+        pretty-simple
 
     -- Directories containing source files.
     hs-source-dirs:   app

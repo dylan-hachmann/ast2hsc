@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
-module MyLib (everything) where
+module MyLib (everything, invokeClang) where
 
 import GHC.Generics
 import Data.Aeson
