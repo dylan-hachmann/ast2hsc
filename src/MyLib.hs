@@ -25,6 +25,26 @@ data DeclType = DeclType
   }
   deriving (Show, Generic, FromJSON)
 
+-- Location for typedef-ing anonymous structs
+data Loc = Loc
+  { offset :: Maybe Int,
+    -- I think this one could be a Maybe...but let the
+    -- program crash for now and deal with it if it
+    -- becomes a problem
+    line :: Maybe Int,
+    col :: Maybe Int,
+    tokLen :: Maybe Int,
+    includedFrom :: Maybe IncludeFile
+  }
+  deriving (Show, Generic, FromJSON)
+
+-- Annoyingly, this is nested, but I've never seen a single thing
+-- besides "file" in there.
+data IncludeFile = IncludeFile
+  { file :: Maybe String
+  }
+  deriving (Show, Generic, FromJSON)
+
 -- Only should get one of these at the top level, so it can be thought
 -- of as an intermediate format that signifies a successful parse.
 data TranslationUnitDecl = TranslationUnitDecl
@@ -40,6 +60,7 @@ instance FromJSON TranslationUnitDecl where
 -- AST nodes i.e. any objects with "kind" field
 data RecordDecl = RecordDecl
   { recordName :: Maybe String,
+    loc :: Maybe Loc,
     fields :: Maybe (V.Vector ASTObject)
   }
   deriving (Show)
@@ -109,8 +130,9 @@ instance FromJSON ASTObject where
       "RecordDecl" ->
         do
           recordName <- obj .:? fromString "name"
+          loc <- obj .:? fromString "loc"
           fields <- obj .:? fromString "inner"
-          return (NodeRD RecordDecl {recordName, fields})
+          return (NodeRD RecordDecl {recordName, loc, fields})
       "FieldDecl" ->
         do
           fieldName <- obj .: fromString "name"
@@ -259,7 +281,7 @@ renderFunctionReturnType = convertType . strip . takeWhile (/= '(')
     strip = unwords . words
 
 renderEnumConstantDecls :: V.Vector ASTObject -> [String]
-renderEnumConstantDecls d =
+renderEnumConstantDecls dV =
   -- Filter out comments for now
   let ecdV =
         V.filter
@@ -267,7 +289,7 @@ renderEnumConstantDecls d =
               (NodeECD _) -> True
               _ -> False
           )
-          d
+          dV
    in V.toList $ V.map renderEnumConstantDecl ecdV
 
 renderEnumConstantDecl :: ASTObject -> String
@@ -317,7 +339,7 @@ convertType x = do
     Just x'' ->
       if x'' /= x
         then convertType x''
-        else return $ "!!Unimplemented: " ++ x ++ "!!"
+        else return $ "!!Unimplemented: " ++ x'' ++ "!!"
 
 -- TODO: Capitalize first thing before _
 structNameChange :: String -> String
