@@ -1,7 +1,7 @@
 * ast2hsc
 Generate better C FFI bindings by parsing the clang AST dump.
 
-Usage:
+** Usage
 #+begin_src bash
   ast2hsc \
       -IdirA -IdirB ... \
@@ -13,3 +13,20 @@ This program is agnostic to all arguments before the last and merely
 forwards them to clang, so it will accept more than what's shown in
 the above example. The last argument should always be the header file
 for which to generate bindings.
+
+
+** Tutorial
+1. Compile C project with clang
+2. Get compile_commands.json
+3. Get list of headers to generate bindings for
+4. Pass in compile_commands.json and the list to the program
+
+   Then, the program:
+   1. Generates bindings to whole translation units
+   2. Exports the functions in the provided headers
+   3. Generates an hsc output
+   4. Runs hsc2hs on that hsc output
+
+5. Go adjust the hsc files by hand
+6. Run the same command line as before, but with a new flag to only
+   run hsc2hs
