@@ -1,5 +1,5 @@
-# Revision history for hs-bindgen
+# Revision history for ast2hsc
 
-## 0.1.0.0 -- YYYY-mm-dd
+## 0.0.0.1 -- 2024-10-05
 
-* First version. Released on an unsuspecting world.
+* Publishing my WIP in case anyone wants to help
