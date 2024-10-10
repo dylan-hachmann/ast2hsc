@@ -339,23 +339,17 @@ renderEnumConstantDecl x =
 
 convertType :: String -> Reader Env String
 convertType "char" = return "CChar"
-convertType "char *" = return "Ptr CChar"
 convertType "bool" = return "CBool"
 convertType "_Bool" = return "CBool"
 convertType "long" = return "CLong"
 convertType "double" = return "CDouble"
 convertType "float" = return "CFloat"
-convertType "float *" = return "Ptr CFloat"
 convertType "int" = return "CInt"
-convertType "int *" = return "Ptr CInt"
 convertType "size_t" = return "CSize"
-convertType "size_t *" = return "Ptr CSize"
 convertType "unsigned int" = return "CUInt"
 convertType "uint16_t" = return "Word16"
-convertType "uint16_t *" = return "Ptr Word16"
 convertType "int32_t" = return "Int32"
 convertType "uint32_t" = return "Word32"
-convertType "uint32_t *" = return "Ptr Word32"
 convertType "void" = return ""
 convertType "void *" = return "Ptr ()"
 convertType "void **" = return "Ptr (Ptr ())"
@@ -371,15 +365,20 @@ convertType ('e' : 'n' : 'u' : 'm' : xs) =
     [x] -> enumNameChange x
     _ -> "!!Unimplemented enum type: enum" <> xs <> "!!"
 convertType ('c' : 'o' : 'n' : 's' : 't' : ' ' : xs) = convertType xs
-convertType x = do
-  tdMap <- asks getTdMap
-  let x' = M.lookup x tdMap
-  case x' of
-    Nothing -> return $ "!!Unimplemented: " <> x <> "!!"
-    Just x'' ->
-      if x'' /= x
-        then convertType x''
-        else return $ "!!Unimplemented: " <> x'' <> "!!"
+convertType x =
+  case words x of
+    [xs, "*"] -> do
+      xsa <- convertType xs
+      return ("Ptr " <> xsa)
+    _ -> do
+      tdMap <- asks getTdMap
+      let x' = M.lookup x tdMap
+      case x' of
+        Nothing -> return $ "!!Unimplemented: " <> x <> "!!"
+        Just x'' ->
+          if x'' /= x
+            then convertType x''
+            else return $ "!!Unimplemented: " <> x'' <> "!!"
 
 -- TODO: Capitalize first thing before _
 structNameChange :: String -> String
