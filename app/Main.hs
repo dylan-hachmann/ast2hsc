@@ -53,7 +53,7 @@ renderAll :: Reader Env String
 renderAll = do
   ast <- asks getASTNodes
   fp <- asks getFilePath
-  let astObjs = getInnerAsList ast
+  let astObjs = V.toList ast
   renders <- mapM (renderASTObject fp) astObjs
   return (unlines renders)
 
@@ -245,7 +245,7 @@ renderASTObject fp (NodeFuD fd) =
     sig <-
       renderParamTypeSignature
         $ ( \case
-              Just x -> getInnerAsList x
+              Just x -> V.toList x
               Nothing -> []
           )
         $ functionInner fd
@@ -301,9 +301,6 @@ renderRecordField (NodeFiD fd) = do
     )
 renderRecordField (NodeFullCmnt _) = return ""
 renderRecordField x = return $ "!!Unimplemented Record Field: " <> show x <> "!!"
-
-getInnerAsList :: V.Vector ASTObject -> [ASTObject]
-getInnerAsList = V.toList
 
 renderParamTypeSignature :: [ASTObject] -> Reader Env String
 renderParamTypeSignature (NodePVD pv : xs) = do
