@@ -66,6 +66,11 @@ data EnumConstantDecl = EnumConstantDecl
   { enumConstantName :: String
   } deriving Show
 
+data TypedefDecl = TypedefDecl
+  { typeDefName :: String
+  , typeDefType :: DeclType
+  } deriving Show
+
 data Unimplemented = Unimplemented
   { kind :: String
   } deriving Show
@@ -76,6 +81,7 @@ data ASTObject = NodeRD RecordDecl
                | NodePVD ParmVarDecl
                | NodeED EnumDecl
                | NodeECD EnumConstantDecl
+               | NodeTD TypedefDecl
                | NodeUnimpl Unimplemented
                | NodeFullCmnt FullComment
                deriving Show
@@ -119,6 +125,12 @@ instance FromJSON ASTObject where
         -> do enumConstantName' <- obj .: fromString "name"
               return (NodeECD EnumConstantDecl
                       { enumConstantName = enumConstantName' })
+      "TypedefDecl"
+        -> do typeDefName' <- obj .: fromString "name"
+              typeDefType' <- obj .: fromString "type"
+              return (NodeTD TypedefDecl
+                      { typeDefName = typeDefName'
+                      , typeDefType = typeDefType' })
       "FullComment"
         -> do fullCommentInner' <- obj .:? fromString "inner"
               return (NodeFullCmnt FullComment
@@ -299,8 +311,20 @@ dropUntilFile fp vv =
   in
     snd $ V.break (\x -> x ^? getFileLoc == expectedFileLoc) vv
 
+isTypedef :: ASTObject -> Bool
+isTypedef (NodeTD _) = True
+isTypedef _          = False
+
+-- We want all of the typedefs in the translation unit, not just from
+-- the current file.
+getTypedefsFromTU :: TranslationUnitDecl -> Maybe (V.Vector ASTObject)
+getTypedefsFromTU tu = fmap (V.filter isTypedef) $ convertVals (syntaxTree tu)
+
 invokeAndGetASTNodes :: [String] -> IO (Maybe (V.Vector ASTObject))
 invokeAndGetASTNodes args = getASTNodesFromFile (last args) <$> invokeClang args
+
+invokeAndGetTypedefs :: [String] -> IO (Maybe (V.Vector ASTObject))
+invokeAndGetTypedefs args = getTypedefsFromTU <$> invokeClang args
 
 renderAll :: FilePath -> IO (Maybe (V.Vector ASTObject)) -> IO String
 renderAll fp ast = do
