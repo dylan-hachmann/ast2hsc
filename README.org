@@ -1,32 +1,27 @@
 * ast2hsc
-Generate better C FFI bindings by parsing the clang AST dump.
+(WIP) Generate C FFI bindings by parsing the clang AST dump.
+
+** Overview
+As it stands, this is just my small effort in automating some of the
+work for https://github.com/bradrn/wlhs. The point for the time being
+is just to handle the trivial stuff automatically, and keep this tool
+as simple as possible.
+
+I figure that, at some point in the future, this could emit proper hsc
+files, but for now I'm emitting the bespoke templating language used
+in WLHS.
 
 ** Usage
 #+begin_src bash
-  ast2hsc \
-      -IdirA -IdirB ... \
-      -DMACRO_ONE -DMACRO_TWO ... \
-      /path/to/header/file.h
+  clang -I/path/to/includes \
+	-DANY_NECESSARY_DEFINES \
+	-x c -Xclang -ast-dump=json -fsyntax-only \
+	header_file_to_bind_to.h > header_file_to_bind_to.json
+  ast2hsc header_file_to_bind_to.json
 #+end_src
 
-This program is agnostic to all arguments before the last and merely
-forwards them to clang, so it will accept more than what's shown in
-the above example. The last argument should always be the header file
-for which to generate bindings.
-
-
-** Tutorial
-1. Compile C project with clang
-2. Get compile_commands.json
-3. Get list of headers to generate bindings for
-4. Pass in compile_commands.json and the list to the program
-
-   Then, the program:
-   1. Generates bindings to whole translation units
-   2. Exports the functions in the provided headers
-   3. Generates an hsc output
-   4. Runs hsc2hs on that hsc output
-
-5. Go adjust the hsc files by hand
-6. Run the same command line as before, but with a new flag to only
-   run hsc2hs
+** Contributing
+If you'd like to help, there's still so much that can be done. In
+terms of functionality, supporting nested structs is the biggest
+priority. Additionally, any attempt to cleanup my amateurish code is
+wholly welcome.

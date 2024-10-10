@@ -1,0 +1,49 @@
+There's no singular way to use this, but I'll show my personal process
+for binding to the header files used by wlroots.
+
+The first step is to compile to project with clang and get the
+~compile_commands.json~, which will provide the defines and include
+paths. Though it's not always necessary to compile with clang as
+opposed to e.g. gcc, it's the only way to ensure accuracy with the
+bindings. Wlroots uses meson, so I merely have to run src_sh{CC=clang
+meson build} and the compile commands appear in ~./build~.
+
+Now, suppose I want to bind to ~include/wlr/types/wlr_output.h~. I
+can't just bind to it in a vacuum, since header files have no meaning
+outside of translation units. I need to figure out which translation
+units include this header. Grepping for filename includes returns a
+number of C files, so which one do I choose? I don't know if there's a
+good heuristic for this, so some discretion is in order. In my case,
+I'm trying to build something similar to tinywl, so I'll use
+~tinywl/tinywl.c~.
+
+Inside of the ~compile_commands.json~, I see:
+~"file":"../tinywl/tinywl.c"~. From the same object, I need the
+includes and defines from the "command" field. I can grab those by
+hand, but for convenience, here's a bash function that I use to
+automate it:
+#+begin_src bash
+  get_includes_and_defines() {
+      file=$1
+      command=$(jq --arg file $file \
+		   '.[] | select(.file == $file) | .command' \
+		   compile_commands.json)
+      awk '{ for(i=1;i<=NF;i++) if ($i ~ /^-[ID]/) printf "%s ", $i }' \
+	  <<< $command
+  }
+#+end_src
+
+All of these paths are relative to the "build" directory that I
+created with meson, so I go there and run the following command:
+#+begin_src bash 
+  clang \
+      $(get_includes_and_defines '../tinywl/tinywl.c') \
+      -x c -Xclang -ast-dump=json -fsyntax-only \
+      ../include/wlr/types/wlr_output.h \
+      > wlr_types_wlr_output.json
+#+end_src
+
+Finally, I can run
+#+begin_src bash
+  ast2hsc wlr_types_wlr_output.json > /path/to/wlhs/WLR/Types/Output.hsc
+#+end_src
