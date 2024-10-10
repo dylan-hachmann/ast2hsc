@@ -156,7 +156,11 @@ renderASTObject _ (NodeED ed) =
           ]++renderEnumConstantDecls x++["}}"])
 renderASTObject fp (NodeFuD fd) =
   let funcName = name fd
-      sig = renderParamTypeSignature (getInnerAsList $ functionInner fd)
+      sig = renderParamTypeSignature
+            $ (\case
+                  Just x -> getInnerAsList x
+                  Nothing -> [])
+            $ functionInner fd
       retType = renderFunctionReturnType (qualType $ returnType fd)
   in unlines
      [ "foreign import capi \""++fp++" "++funcName++"\""
@@ -190,9 +194,8 @@ renderRecordField (NodeFiD fd) = "    "++fieldName fd++", "++convertType (qualTy
 renderRecordField (NodeFullCmnt _) = ""
 renderRecordField x = "!!Unimplemented Record Field: "++show x++"!!"
 
-getInnerAsList :: Maybe (V.Vector ASTObject) -> [ASTObject]
-getInnerAsList (Just x) = V.toList x
-getInnerAsList Nothing  = []
+getInnerAsList :: V.Vector ASTObject -> [ASTObject]
+getInnerAsList = V.toList
 
 renderParamTypeSignature :: [ASTObject] -> String
 renderParamTypeSignature (NodePVD pv:xs) = convertType (qualType $ parmVarType pv)++" -> "++renderParamTypeSignature xs
@@ -290,19 +293,19 @@ invokeClang args =
 
 -- Regular old 'fromJson' returns a Result type. I'm not too concerned
 -- about the error portion, so just toss it and return a 'Maybe'.
-convertVals :: V.Vector Value -> Maybe (V.Vector ASTObject)
+convertVals :: V.Vector Value -> V.Vector ASTObject
 convertVals x = let resultObjs = V.map (fromJSON :: Value -> Result ASTObject) x
                     justSuccess = V.filter (\case
                                                (Success _) -> True
                                                (Error _) -> False)
                                   resultObjs
                     objs = V.map (\(Success obj) -> obj) justSuccess
-                in Just objs
+                in objs
 
 -- Don't parse the nodes inside of the syntax tree just yet. First, filter out
 -- everything that isn't from the file in question. Then parse and deal with
 -- the resultant Vector.
-getASTNodesFromFile :: FilePath -> TranslationUnitDecl -> Maybe (V.Vector ASTObject)
+getASTNodesFromFile :: FilePath -> TranslationUnitDecl -> V.Vector ASTObject
 getASTNodesFromFile fp tu = convertVals $ dropUntilFile fp (syntaxTree tu)
 
 -- Drop nodes
@@ -320,16 +323,16 @@ isTypedef _          = False
 
 -- We want all of the typedefs in the translation unit, not just from
 -- the current file.
-getTypedefsFromTU :: TranslationUnitDecl -> Maybe (V.Vector ASTObject)
-getTypedefsFromTU tu = fmap (V.filter isTypedef) $ convertVals (syntaxTree tu)
+getTypedefsFromTU :: TranslationUnitDecl -> V.Vector ASTObject
+getTypedefsFromTU tu = V.filter isTypedef $ convertVals (syntaxTree tu)
 
-invokeAndGetASTNodes :: [String] -> IO (Maybe (V.Vector ASTObject))
+invokeAndGetASTNodes :: [String] -> IO (V.Vector ASTObject)
 invokeAndGetASTNodes args = getASTNodesFromFile (last args) <$> invokeClang args
 
-invokeAndGetTypedefs :: [String] -> IO (Maybe (V.Vector ASTObject))
+invokeAndGetTypedefs :: [String] -> IO (V.Vector ASTObject)
 invokeAndGetTypedefs args = getTypedefsFromTU <$> invokeClang args
 
-renderAll :: FilePath -> IO (Maybe (V.Vector ASTObject)) -> IO String
+renderAll :: FilePath -> IO (V.Vector ASTObject) -> IO String
 renderAll fp ast = do
   astObjs <- getInnerAsList <$> ast
   let renders = map (renderASTObject fp) astObjs
