@@ -20,11 +20,15 @@ data DeclType where
   DeclType :: {qualType :: String} -> DeclType
   deriving (Show, Generic, FromJSON)
 
--- AST nodes i.e. any objects with "kind" field
 data TranslationUnitDecl = TranslationUnitDecl
   { syntaxTree :: V.Vector Value
   } deriving Show
+instance FromJSON TranslationUnitDecl where
+  parseJSON = withObject "TranslationUnitDecl" $ \obj -> do
+    syntaxTree' <- obj .: fromString "inner"
+    return (TranslationUnitDecl syntaxTree')
 
+-- AST nodes i.e. any objects with "kind" field
 data RecordDecl = RecordDecl
   { recordName :: Maybe String
   , fields :: Maybe (V.Vector ASTObject)
@@ -63,8 +67,7 @@ data Unimplemented = Unimplemented
   { kind :: String
   } deriving Show
 
-data ASTObject = NodeTUD TranslationUnitDecl
-               | NodeRD RecordDecl
+data ASTObject = NodeRD RecordDecl
                | NodeFiD FieldDecl
                | NodeFuD FunctionDecl
                | NodePVD ParmVarDecl
@@ -77,10 +80,6 @@ instance FromJSON ASTObject where
   parseJSON = withObject "ASTObject" $ \obj -> do
     kind' <- obj .: fromString "kind"
     case kind' of
-      "TranslationUnitDecl"
-        -> do syntaxTree' <- obj .: fromString "inner"
-              return (NodeTUD TranslationUnitDecl
-                      { syntaxTree = syntaxTree' })
       "RecordDecl"
         -> do recordName' <- obj .:? fromString "name"
               fields' <- obj .:? fromString "inner"
@@ -126,9 +125,8 @@ instance FromJSON ASTObject where
 
 
 renderASTObject :: FilePath -> ASTObject -> String
-renderASTObject _  (NodeTUD _) = ""
-renderASTObject _  (NodeUnimpl _) = ""
-renderASTObject fp (NodeED ed) =
+renderASTObject _ (NodeUnimpl _) = ""
+renderASTObject _ (NodeED ed) =
   case enumInner ed of
     Nothing
       -> unlines
@@ -172,7 +170,7 @@ renderRecordFields :: V.Vector ASTObject -> [String]
 renderRecordFields x = V.toList $ V.map renderRecordField x
 
 renderRecordField :: ASTObject -> String
-renderRecordField (NodeRD rd) = "!!Unimplemented Record Field: Nested RecordDecl!!"
+renderRecordField (NodeRD _) = "!!Unimplemented Record Field: Nested RecordDecl!!"
 renderRecordField (NodeFiD fd) = "    "++fieldName fd++", "++convertType (qualType $ fieldType fd)++","
 renderRecordField (NodeFullCmnt _) = ""
 renderRecordField x = "!!Unimplemented Record Field: "++show x++"!!"
@@ -249,7 +247,7 @@ enumNameChange = id
 clangExecutable :: String
 clangExecutable = "clang"
 
-invokeClang :: [String] -> IO ASTObject
+invokeClang :: [String] -> IO TranslationUnitDecl
 invokeClang args =
   let
     args' = [ "-x"
@@ -271,27 +269,32 @@ invokeClang args =
                                                   , std_err = CreatePipe
                                                   }
       contents <- B.hGetContents hout
-      let (Just jsonValue) = decode (LB.fromStrict contents)
-      return jsonValue
+      case decode (LB.fromStrict contents) of
+        Just jsonValue -> return jsonValue
+        Nothing        -> return (TranslationUnitDecl (V.fromList []))
 
 -- Don't parse the nodes inside of the syntax tree just yet. First, filter out
 -- everything that isn't from the file in question. Then parse and deal with
 -- the resultant Vector.
-getASTNodesFromFile :: FilePath -> ASTObject -> Maybe (V.Vector ASTObject)
-getASTNodesFromFile fp (NodeTUD tu) =
+getASTNodesFromFile :: FilePath -> TranslationUnitDecl -> Maybe (V.Vector ASTObject)
+getASTNodesFromFile fp tu =
   let
-    getFileLoc = (_Value . key (fromString "loc") . key (fromString "file"))
-    expectedFileLoc = Just (String (T.pack fp))
-    -- run fromJSON inside of Maybe Vector and change Result to Maybe
     convertVals x =
       let resultObjs = V.map (fromJSON :: Value -> Result ASTObject) x
       in case sequence resultObjs of
            Success objs -> Just objs
            Error _      -> Nothing
   in
-    convertVals $ snd
-    $ V.break (\x -> x ^? getFileLoc == expectedFileLoc) (syntaxTree tu)
-getASTNodesFromFile _ _ = Nothing
+    convertVals $ dropUntilFile fp (syntaxTree tu)
+
+-- Drop nodes
+dropUntilFile :: FilePath -> V.Vector Value -> V.Vector Value
+dropUntilFile fp vv =
+  let
+    getFileLoc = (_Value . key (fromString "loc") . key (fromString "file"))
+    expectedFileLoc = Just (String (T.pack fp))
+  in
+    snd $ V.break (\x -> x ^? getFileLoc == expectedFileLoc) vv
 
 invokeAndGetASTNodes :: [String] -> IO (Maybe (V.Vector ASTObject))
 invokeAndGetASTNodes args = getASTNodesFromFile (last args) <$> invokeClang args
