@@ -18,7 +18,8 @@ import Data.Aeson.KeyMap (KeyMap)
 
 -- Small objects within AST nodes
 data DeclType where
-  DeclType :: {qualType :: String} -> DeclType
+  DeclType :: { qualType :: String
+              , desugaredQualType :: Maybe String } -> DeclType
   deriving (Show, Generic, FromJSON)
 
 data TranslationUnitDecl = TranslationUnitDecl
