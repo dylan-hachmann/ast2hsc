@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
-module MyLib (everything, invokeClang) where
+module MyLib (everything, invokeClang, invokeClang') where
 
 import GHC.Generics
 import Data.Aeson
@@ -14,6 +14,13 @@ import qualified Data.Vector as V
 import qualified Data.Text as T
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
+
+
+data NewASTObject = NewASTObject
+  { id :: Maybe T.Text
+  , kind :: Maybe T.Text
+  , inner :: Maybe [NewASTObject]
+  } deriving (Show, Generic, FromJSON)
 
 -- Small objects within AST nodes
 data DeclType where
@@ -60,7 +67,7 @@ data EnumConstantDecl = EnumConstantDecl
   } deriving Show
 
 data Unimplemented = Unimplemented
-  { kind :: String
+  { unimplKind :: String
   } deriving Show
 
 data ASTObject = NodeTUD TranslationUnitDecl
@@ -122,7 +129,7 @@ instance FromJSON ASTObject where
               return (NodeFullCmnt FullComment
                      { fullCommentInner = fullCommentInner' })
       _
-        -> do return (NodeUnimpl Unimplemented { kind = kind' })
+        -> do return (NodeUnimpl Unimplemented { unimplKind = kind' })
 
 
 renderASTObject :: FilePath -> ASTObject -> String
@@ -239,15 +246,41 @@ convertType x = "!!Unimplemented: "++x++"!!"
 
 -- TODO: Capitalize first thing before _
 structNameChange :: String -> String
-structNameChange = id
+structNameChange = Prelude.id
 
 -- TODO: Capitalize first thing before _
 enumNameChange :: String -> String
-enumNameChange = id
+enumNameChange = Prelude.id
 
 -- TODO: Parameterize this; users should be able to pass in absolute paths.
 clangExecutable :: String
 clangExecutable = "clang"
+
+invokeClang' :: [String] -> IO NewASTObject
+invokeClang' args =
+  let
+    args' = [ "-x"
+            , "c"
+            , "-Xclang"
+            , "-ast-dump=json"
+            , "-fsyntax-only"
+            ] ++ args
+  in
+    do
+      (_, Just hout, _, _) <-
+        createProcess (proc clangExecutable args') { std_out = CreatePipe
+                                                  -- suppress stdErr, which is
+                                                  -- usually a bunch of garbage
+                                                  -- about not finding includes
+                                                  -- 
+                                                  -- might be useful
+                                                  -- though. change eventually
+                                                  , std_err = CreatePipe
+                                                  }
+      contents <- B.hGetContents hout
+      let (Just jsonValue) = decode (LB.fromStrict contents)
+      return jsonValue
+
 
 invokeClang :: [String] -> IO ASTObject
 invokeClang args =
