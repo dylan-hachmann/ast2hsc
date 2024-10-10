@@ -59,7 +59,7 @@ data EnumConstantDecl = EnumConstantDecl
   { enumConstantName :: String
   } deriving Show
 
-data Unimplmented = Unimplmented
+data Unimplemented = Unimplemented
   { kind :: String
   } deriving Show
 
@@ -70,7 +70,7 @@ data ASTObject = NodeTUD TranslationUnitDecl
                | NodePVD ParmVarDecl
                | NodeED EnumDecl
                | NodeECD EnumConstantDecl
-               | NodeUnimpl Unimplmented
+               | NodeUnimpl Unimplemented
                | NodeFullCmnt FullComment
                deriving Show
 instance FromJSON ASTObject where
@@ -122,7 +122,7 @@ instance FromJSON ASTObject where
               return (NodeFullCmnt FullComment
                      { fullCommentInner = fullCommentInner' })
       _
-        -> do return (NodeUnimpl Unimplmented { kind = kind' })
+        -> do return (NodeUnimpl Unimplemented { kind = kind' })
 
 
 renderASTObject :: FilePath -> ASTObject -> String
@@ -171,7 +171,7 @@ renderRecordFields :: V.Vector ASTObject -> [String]
 renderRecordFields x = V.toList $ V.map renderRecordField x
 
 renderRecordField :: ASTObject -> String
-renderRecordField (NodeRD rd) = "!!Unimplmented Record Field: Nested RecordDecl!!"
+renderRecordField (NodeRD rd) = "!!Unimplemented Record Field: Nested RecordDecl!!"
 renderRecordField (NodeFiD fd) = "    "++fieldName fd++", "++convertType (qualType $ fieldType fd)++","
 renderRecordField (NodeFullCmnt _) = ""
 renderRecordField x = "!!Unimplemented Record Field: "++show x++"!!"
@@ -203,28 +203,46 @@ renderEnumConstantDecl (NodeECD ecd) = "    "++enumConstantName ecd++","
 renderEnumConstantDecl x             = "!!Unimplemented: "++show x++"!!"
 
 convertType :: String -> String
-convertType "bool"       = "CBool"
-convertType "int"        = "CInt"
-convertType "int *"      = "Ptr CInt"
-convertType "size_t"     = "CSize"
-convertType "size_t *"   = "Ptr CSize"
-convertType "uint16_t"   = "Word16"
-convertType "uint16_t *" = "Ptr Word16"
-convertType "uint32_t"   = "Word32"
-convertType "uint32_t *" = "Ptr Word32"
-convertType "void"       = ""
-convertType "void *"     = "Ptr ()"
-convertType "void **"    = "Ptr (Ptr ())"
+convertType "char"         = "CChar"
+convertType "char *"       = "Ptr CChar"
+convertType "bool"         = "CBool"
+convertType "_Bool"        = "CBool"
+convertType "double"       = "CDouble"
+convertType "float"        = "CFloat"
+convertType "int"          = "CInt"
+convertType "int *"        = "Ptr CInt"
+convertType "size_t"       = "CSize"
+convertType "size_t *"     = "Ptr CSize"
+convertType "unsigned int" = "CUInt"
+convertType "uint16_t"     = "Word16"
+convertType "uint16_t *"   = "Ptr Word16"
+convertType "int32_t"      = "Int32"
+convertType "uint32_t"     = "Word32"
+convertType "uint32_t *"   = "Ptr Word32"
+convertType "void"         = ""
+convertType "void *"       = "Ptr ()"
+convertType "void **"      = "Ptr (Ptr ())"
 convertType ('s':'t':'r':'u':'c':'t':xs) =
   case words xs of
-  [x, "*"] -> "Ptr "++structNameChange x
-  [x]      -> structNameChange x
-  _        -> "!!Unimplemented struct type: struct"++xs++"!!"
-convertType x = "!!Unimplimented: "++x++"!!"
+  [x, "*"]  -> "Ptr "++structNameChange x
+  [x, "**"] -> "Ptr (Ptr "++structNameChange x++")"
+  [x]       -> structNameChange x
+  _         -> "!!Unimplemented struct type: struct"++xs++"!!"
+convertType ('e':'n':'u':'m':xs) =
+  case words xs of
+  [x, "*"] -> "Ptr "++enumNameChange x
+  [x]      -> enumNameChange x
+  _        -> "!!Unimplemented enum type: enum"++xs++"!!"
+convertType ('c':'o':'n':'s':'t':' ':xs) = convertType xs
+convertType x = "!!Unimplemented: "++x++"!!"
 
 -- TODO: Capitalize first thing before _
 structNameChange :: String -> String
 structNameChange = id
+
+-- TODO: Capitalize first thing before _
+enumNameChange :: String -> String
+enumNameChange = id
 
 -- TODO: Parameterize this; users should be able to pass in absolute paths.
 clangExecutable :: String
