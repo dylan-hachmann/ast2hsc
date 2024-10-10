@@ -292,9 +292,12 @@ invokeClang args =
 -- about the error portion, so just toss it and return a 'Maybe'.
 convertVals :: V.Vector Value -> Maybe (V.Vector ASTObject)
 convertVals x = let resultObjs = V.map (fromJSON :: Value -> Result ASTObject) x
-                in case sequence resultObjs of
-                     Success objs -> Just objs
-                     Error _      -> Nothing
+                    justSuccess = V.filter (\case
+                                               (Success _) -> True
+                                               (Error _) -> False)
+                                  resultObjs
+                    objs = V.map (\(Success obj) -> obj) justSuccess
+                in Just objs
 
 -- Don't parse the nodes inside of the syntax tree just yet. First, filter out
 -- everything that isn't from the file in question. Then parse and deal with
