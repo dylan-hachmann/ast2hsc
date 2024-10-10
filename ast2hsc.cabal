@@ -24,7 +24,7 @@ version:            0.1.0.0
 
 -- A short (one-line) description of the package.
 synopsis:
-    Create C bindings by invoking clang. Inspired by rust-bindgen.
+    Create C bindings by invoking clang. Inspired by c2hsc and rust-bindgen.
 
 -- A longer description of the package.
 -- description:
