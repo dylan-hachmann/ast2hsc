@@ -1,0 +1,15 @@
+* ast2hsc
+Generate better C FFI bindings by parsing the clang AST dump.
+
+Usage:
+#+begin_src bash
+  ast2hsc \
+      -IdirA -IdirB ... \
+      -DMACRO_ONE -DMACRO_TWO ... \
+      /path/to/header/file.h
+#+end_src
+
+This program is agnostic to all arguments before the last and merely
+forwards them to clang, so it will accept more than what's shown in
+the above example. The last argument should always be the header file
+for which to generate bindings.
