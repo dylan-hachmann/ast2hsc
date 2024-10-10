@@ -9,10 +9,10 @@ typedef intege integer;
 integer add4(intege, integ, inte, int);
 
 // Struct
-typedef struct {
+struct some_nums {
   int a;
   long b;
   float c;
-} some_nums;
+};
 
 bool crunch(some_nums);
