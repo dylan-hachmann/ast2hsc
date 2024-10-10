@@ -12,6 +12,7 @@ import Data.Aeson.Key
 import Data.Aeson.Lens
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
+import Data.List
 import qualified Data.Map.Lazy as M
 import Data.Maybe
 import qualified Data.Text as T
@@ -337,7 +338,8 @@ renderEnumConstantDecl x =
 basicTypeMap :: M.Map String String
 basicTypeMap =
   M.fromList
-    [ ("_Bool", "CBool"),
+    [ ("bool", "CBool"),
+      ("_Bool", "CBool"),
       ("char", "CChar"),
       ("double", "CDouble"),
       ("float", "CFloat"),
@@ -351,36 +353,60 @@ basicTypeMap =
       ("void", "()")
     ]
 
-convertType :: String -> Reader Env String
-convertType "void **" = return "Ptr (Ptr ())"
-convertType ('s' : 't' : 'r' : 'u' : 'c' : 't' : xs) =
-  return $ case words xs of
-    [x, "*"] -> "Ptr " <> structNameChange x
-    [x, "**"] -> "Ptr (Ptr " <> structNameChange x <> ")"
-    [x] -> structNameChange x
-    _ -> "!!Unimplemented struct type: struct" <> xs <> "!!"
-convertType ('e' : 'n' : 'u' : 'm' : xs) =
-  return $ case words xs of
-    [x, "*"] -> "Ptr " <> enumNameChange x
-    [x] -> enumNameChange x
-    _ -> "!!Unimplemented enum type: enum" <> xs <> "!!"
-convertType ('c' : 'o' : 'n' : 's' : 't' : ' ' : xs) = convertType xs
-convertType x =
-  case words x of
-    [xs, "*"] -> do
-      xsa <- convertType xs
-      return ("Ptr " <> xsa)
-    _ -> do
+-- newtype NameChange = NameChange (String -> String)
+type NameChange = String -> String
+
+-- Parameterizing the name change with the intention that I may pass
+-- in values with an "internal" name change at some point, which will
+-- just add an underscore to avoid compilation warnings.
+convertType' :: NameChange -> String -> Reader Env String
+convertType' nameChange t
+  | "const " `isPrefixOf` t' = convertType' nameChange (drop 6 t')
+  | "struct " `isPrefixOf` t' =
+      let rest = drop 7 t'
+       in case words rest of
+            [] -> return "!!Unimplemented: anonymous struct!!"
+            [x] -> return $ (nameChange . structNameChange) x
+            x : xs ->
+              if "*" `isPrefixOf` head xs
+                then
+                  convertType'
+                    (addPtr . nameChange)
+                    (take 7 t' <> " " <> x <> " " <> drop 1 (unwords xs))
+                else case M.lookup rest basicTypeMap of
+                  Nothing -> return $ "!!Unimplemented: " <> t' <> "!!"
+                  Just y -> return $ (nameChange . structNameChange) y
+  | "enum " `isPrefixOf` t' = return $ (nameChange . enumNameChange) (drop 5 t')
+  | otherwise = convertType'' nameChange t
+  where
+    t' = (T.unpack . T.strip . T.pack) t -- I will switch Strings to Text, eventually :)
+
+addPtr :: NameChange
+addPtr x = "Ptr (" <> x <> ")"
+
+convertType'' :: NameChange -> String -> Reader Env String
+convertType'' nameChange t =
+  case words t of
+    [] -> error "convertType'' received an empty string input"
+    [x] -> do
       tdMap <- asks getTdMap
-      let x' = M.lookup x tdMap
-      case x' of
-        Nothing -> case M.lookup x basicTypeMap of
-          Nothing -> return $ "!!Unimplemented: " <> x <> "!!"
-          Just t -> return t
-        Just x'' ->
-          if x'' /= x
-            then convertType x''
-            else return $ "!!Unimplemented: " <> x'' <> "!!"
+      case M.lookup x basicTypeMap of
+        Just y -> return (nameChange y)
+        Nothing -> case M.lookup x tdMap of
+          Nothing -> return $ "!!Unimplemented: " <> t <> "!!"
+          Just x' ->
+            if x' /= x
+              then convertType'' nameChange x'
+              else return $ "!!Unimplemented: " <> t <> "!!"
+    x : xs ->
+      if "*" `isPrefixOf` head xs
+        then convertType'' (addPtr . nameChange) (x <> " " <> drop 1 (unwords xs))
+        else case M.lookup t basicTypeMap of
+          Nothing -> return $ "!!Unimplemented: " <> t <> "!!"
+          Just y -> return $ (nameChange . structNameChange) y
+
+convertType :: String -> Reader Env String
+convertType x = convertType' id x
 
 -- TODO: Capitalize first thing before _
 structNameChange :: String -> String
