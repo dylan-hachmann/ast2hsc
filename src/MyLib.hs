@@ -280,7 +280,8 @@ invokeAndGetASTNodes args = getASTNodesFromFile (last args) <$> invokeClang args
 renderAll :: FilePath -> IO (Maybe (V.Vector ASTObject)) -> IO String
 renderAll fp ast = do
   astObjs <- getInnerAsList <$> ast
-  return (astObjs >>= renderASTObject fp)
+  let renders = map (renderASTObject fp) astObjs
+  return (unlines renders)
 
 everything :: [String] -> IO String
 everything x =
