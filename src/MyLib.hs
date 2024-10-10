@@ -172,7 +172,7 @@ renderRecordFields x = V.toList $ V.map renderRecordField x
 
 renderRecordField :: ASTObject -> String
 renderRecordField (NodeRD rd) = "!!Unimplmented Record Field: Nested RecordDecl!!"
-renderRecordField (NodeFiD fd) = fieldName fd++", "++convertType (qualType $ fieldType fd)++","
+renderRecordField (NodeFiD fd) = "    "++fieldName fd++", "++convertType (qualType $ fieldType fd)++","
 renderRecordField (NodeFullCmnt _) = ""
 renderRecordField x = "!!Unimplemented Record Field: "++show x++"!!"
 
