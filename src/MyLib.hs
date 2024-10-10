@@ -18,6 +18,17 @@ import qualified Data.Vector as V
 import GHC.Generics
 import System.Process
 
+
+data Env = Env
+  { getFilePath :: FilePath,
+    getTdMap :: M.Map String String,
+    getASTNodes :: V.Vector ASTObject
+  }
+  deriving (Show)
+
+
+-- * AST decoding
+
 -- Small objects within AST nodes
 data DeclType = DeclType
   { qualType :: String,
@@ -183,6 +194,9 @@ instance FromJSON ASTObject where
       _ ->
         do return (NodeUnimpl Unimplemented {kind})
 
+
+
+-- * Rendering
 renderASTObject :: FilePath -> ASTObject -> Reader Env String
 renderASTObject _ (NodeUnimpl _) = return ""
 renderASTObject _ (NodeED ed) =
@@ -350,36 +364,8 @@ structNameChange = id
 enumNameChange :: String -> String
 enumNameChange = id
 
--- TODO: Parameterize this; users should be able to pass in absolute
--- paths.
-clangExecutable :: String
-clangExecutable = "clang"
 
-invokeClang :: [String] -> IO TranslationUnitDecl
-invokeClang args =
-  let args' =
-        [ "-x",
-          "c",
-          "-Xclang",
-          "-ast-dump=json",
-          "-fsyntax-only"
-        ]
-          <> args
-   in do
-        (_, Just hout, _, _) <-
-          createProcess
-            (proc clangExecutable args')
-              { std_out = CreatePipe,
-                -- suppress stdErr, which is usually a bunch of garbage about
-                -- not finding includes
-                --
-                -- might be useful though. change eventually
-                std_err = CreatePipe
-              }
-        contents <- B.hGetContents hout
-        case decode (LB.fromStrict contents) of
-          Just jsonValue -> return jsonValue
-          Nothing -> return (TranslationUnitDecl (V.fromList []))
+-- * Process AST
 
 -- Regular old 'fromJson' returns a Result type. I'm not too concerned
 -- about the error portion, so just toss it and return a 'Maybe'.
@@ -425,6 +411,7 @@ dropUntilFile fp vv =
       expectedFileLoc = Just (String (T.pack fp))
    in snd $ V.break (\x -> x ^? getFileLoc == expectedFileLoc) vv
 
+-- * Typedefs
 isTypedef :: ASTObject -> Bool
 isTypedef (NodeTD _) = True
 isTypedef _ = False
@@ -435,16 +422,6 @@ getTypedefsFromTU :: TranslationUnitDecl -> V.Vector ASTObject
 getTypedefsFromTU tu =
   V.filter isTypedef $
     convertVals (syntaxTree tu)
-
-invokeAndGetASTNodes :: [String] -> IO (V.Vector ASTObject)
-invokeAndGetASTNodes args =
-  getASTNodesFromFile (last args)
-    <$> invokeClang args
-
-invokeAndGetTypedefs :: [String] -> IO (V.Vector ASTObject)
-invokeAndGetTypedefs args =
-  getTypedefsFromTU
-    <$> invokeClang args
 
 typedefToTuple :: ASTObject -> (String, String)
 typedefToTuple (NodeTD x) =
@@ -481,12 +458,52 @@ unfurlTypedefs tdMap dt =
         Just rt -> unfurlTypedefs tdMap $ DeclType rt Nothing
         Nothing -> DeclType t Nothing
 
-data Env = Env
-  { getFilePath :: FilePath,
-    getTdMap :: M.Map String String,
-    getASTNodes :: V.Vector ASTObject
-  }
-  deriving (Show)
+-- * Invoke clang
+
+-- TODO: Parameterize this; users should be able to pass in absolute
+-- paths.
+clangExecutable :: String
+clangExecutable = "clang"
+
+invokeClang :: [String] -> IO TranslationUnitDecl
+invokeClang args =
+  let args' =
+        [ "-x",
+          "c",
+          "-Xclang",
+          "-ast-dump=json",
+          "-fsyntax-only"
+        ]
+          <> args
+   in do
+        (_, Just hout, _, _) <-
+          createProcess
+            (proc clangExecutable args')
+              { std_out = CreatePipe,
+                -- suppress stdErr, which is usually a bunch of garbage about
+                -- not finding includes
+                --
+                -- might be useful though. change eventually
+                std_err = CreatePipe
+              }
+        contents <- B.hGetContents hout
+        case decode (LB.fromStrict contents) of
+          Just jsonValue -> return jsonValue
+          Nothing -> return (TranslationUnitDecl (V.fromList []))
+
+
+invokeAndGetASTNodes :: [String] -> IO (V.Vector ASTObject)
+invokeAndGetASTNodes args =
+  getASTNodesFromFile (last args)
+    <$> invokeClang args
+
+invokeAndGetTypedefs :: [String] -> IO (V.Vector ASTObject)
+invokeAndGetTypedefs args =
+  getTypedefsFromTU
+    <$> invokeClang args
+
+
+-- * Higher-level convenience
 
 renderAll :: Reader Env String
 renderAll = do
