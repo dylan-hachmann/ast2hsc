@@ -334,21 +334,24 @@ renderEnumConstantDecl (NodeECD ecd) =
 renderEnumConstantDecl x =
   "!!Unimplemented: " <> show x <> "!!"
 
+basicTypeMap :: M.Map String String
+basicTypeMap =
+  M.fromList
+    [ ("_Bool", "CBool"),
+      ("char", "CChar"),
+      ("double", "CDouble"),
+      ("float", "CFloat"),
+      ("int", "CInt"),
+      ("int32_t", "Int32"),
+      ("long", "CLong"),
+      ("size_t", "CSize"),
+      ("uint16_t", "Word16"),
+      ("uint32_t", "Word32"),
+      ("unsigned int", "CUInt"),
+      ("void", "()")
+    ]
+
 convertType :: String -> Reader Env String
-convertType "char" = return "CChar"
-convertType "bool" = return "CBool"
-convertType "_Bool" = return "CBool"
-convertType "long" = return "CLong"
-convertType "double" = return "CDouble"
-convertType "float" = return "CFloat"
-convertType "int" = return "CInt"
-convertType "size_t" = return "CSize"
-convertType "unsigned int" = return "CUInt"
-convertType "uint16_t" = return "Word16"
-convertType "int32_t" = return "Int32"
-convertType "uint32_t" = return "Word32"
-convertType "void" = return ""
-convertType "void *" = return "Ptr ()"
 convertType "void **" = return "Ptr (Ptr ())"
 convertType ('s' : 't' : 'r' : 'u' : 'c' : 't' : xs) =
   return $ case words xs of
@@ -371,7 +374,9 @@ convertType x =
       tdMap <- asks getTdMap
       let x' = M.lookup x tdMap
       case x' of
-        Nothing -> return $ "!!Unimplemented: " <> x <> "!!"
+        Nothing -> case M.lookup x basicTypeMap of
+          Nothing -> return $ "!!Unimplemented: " <> x <> "!!"
+          Just t -> return t
         Just x'' ->
           if x'' /= x
             then convertType x''
