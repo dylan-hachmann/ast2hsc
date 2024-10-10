@@ -1,0 +1,1028 @@
+{
+  "id": "0x1ebcfe8",
+  "kind": "TranslationUnitDecl",
+  "loc": {},
+  "range": {
+    "begin": {},
+    "end": {}
+  },
+  "inner": [
+    {
+      "id": "0x1ebd818",
+      "kind": "TypedefDecl",
+      "loc": {},
+      "range": {
+        "begin": {},
+        "end": {}
+      },
+      "isImplicit": true,
+      "name": "__int128_t",
+      "type": {
+        "qualType": "__int128"
+      },
+      "inner": [
+        {
+          "id": "0x1ebd5b0",
+          "kind": "BuiltinType",
+          "type": {
+            "qualType": "__int128"
+          }
+        }
+      ]
+    },
+    {
+      "id": "0x1ebd888",
+      "kind": "TypedefDecl",
+      "loc": {},
+      "range": {
+        "begin": {},
+        "end": {}
+      },
+      "isImplicit": true,
+      "name": "__uint128_t",
+      "type": {
+        "qualType": "unsigned __int128"
+      },
+      "inner": [
+        {
+          "id": "0x1ebd5d0",
+          "kind": "BuiltinType",
+          "type": {
+            "qualType": "unsigned __int128"
+          }
+        }
+      ]
+    },
+    {
+      "id": "0x1ebdb90",
+      "kind": "TypedefDecl",
+      "loc": {},
+      "range": {
+        "begin": {},
+        "end": {}
+      },
+      "isImplicit": true,
+      "name": "__NSConstantString",
+      "type": {
+        "qualType": "struct __NSConstantString_tag"
+      },
+      "inner": [
+        {
+          "id": "0x1ebd960",
+          "kind": "RecordType",
+          "type": {
+            "qualType": "struct __NSConstantString_tag"
+          },
+          "decl": {
+            "id": "0x1ebd8e0",
+            "kind": "RecordDecl",
+            "name": "__NSConstantString_tag"
+          }
+        }
+      ]
+    },
+    {
+      "id": "0x1ebdc38",
+      "kind": "TypedefDecl",
+      "loc": {},
+      "range": {
+        "begin": {},
+        "end": {}
+      },
+      "isImplicit": true,
+      "name": "__builtin_ms_va_list",
+      "type": {
+        "qualType": "char *"
+      },
+      "inner": [
+        {
+          "id": "0x1ebdbf0",
+          "kind": "PointerType",
+          "type": {
+            "qualType": "char *"
+          },
+          "inner": [
+            {
+              "id": "0x1ebd090",
+              "kind": "BuiltinType",
+              "type": {
+                "qualType": "char"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0x1ebdf30",
+      "kind": "TypedefDecl",
+      "loc": {},
+      "range": {
+        "begin": {},
+        "end": {}
+      },
+      "isImplicit": true,
+      "name": "__builtin_va_list",
+      "type": {
+        "qualType": "struct __va_list_tag[1]"
+      },
+      "inner": [
+        {
+          "id": "0x1ebded0",
+          "kind": "ConstantArrayType",
+          "type": {
+            "qualType": "struct __va_list_tag[1]"
+          },
+          "size": 1,
+          "inner": [
+            {
+              "id": "0x1ebdd10",
+              "kind": "RecordType",
+              "type": {
+                "qualType": "struct __va_list_tag"
+              },
+              "decl": {
+                "id": "0x1ebdc90",
+                "kind": "RecordDecl",
+                "name": "__va_list_tag"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0x1f1d1a0",
+      "kind": "RecordDecl",
+      "loc": {
+        "offset": 25,
+        "file": "struct.h",
+        "line": 2,
+        "col": 8,
+        "tokLen": 9
+      },
+      "range": {
+        "begin": {
+          "offset": 18,
+          "col": 1,
+          "tokLen": 6
+        },
+        "end": {
+          "offset": 67,
+          "line": 6,
+          "col": 1,
+          "tokLen": 1
+        }
+      },
+      "name": "some_nums",
+      "tagUsed": "struct",
+      "completeDefinition": true,
+      "inner": [
+        {
+          "id": "0x1f1d258",
+          "kind": "FieldDecl",
+          "loc": {
+            "offset": 43,
+            "line": 3,
+            "col": 7,
+            "tokLen": 1
+          },
+          "range": {
+            "begin": {
+              "offset": 39,
+              "col": 3,
+              "tokLen": 3
+            },
+            "end": {
+              "offset": 43,
+              "col": 7,
+              "tokLen": 1
+            }
+          },
+          "name": "a",
+          "type": {
+            "qualType": "int"
+          }
+        },
+        {
+          "id": "0x1f1d2c0",
+          "kind": "FieldDecl",
+          "loc": {
+            "offset": 53,
+            "line": 4,
+            "col": 8,
+            "tokLen": 1
+          },
+          "range": {
+            "begin": {
+              "offset": 48,
+              "col": 3,
+              "tokLen": 4
+            },
+            "end": {
+              "offset": 53,
+              "col": 8,
+              "tokLen": 1
+            }
+          },
+          "name": "b",
+          "type": {
+            "qualType": "long"
+          }
+        },
+        {
+          "id": "0x1f1d328",
+          "kind": "FieldDecl",
+          "loc": {
+            "offset": 64,
+            "line": 5,
+            "col": 9,
+            "tokLen": 1
+          },
+          "range": {
+            "begin": {
+              "offset": 58,
+              "col": 3,
+              "tokLen": 5
+            },
+            "end": {
+              "offset": 64,
+              "col": 9,
+              "tokLen": 1
+            }
+          },
+          "name": "c",
+          "type": {
+            "qualType": "float"
+          }
+        }
+      ]
+    },
+    {
+      "id": "0x1f1d378",
+      "kind": "RecordDecl",
+      "loc": {
+        "offset": 109,
+        "line": 9,
+        "col": 9,
+        "tokLen": 6
+      },
+      "range": {
+        "begin": {
+          "offset": 109,
+          "col": 9,
+          "tokLen": 6
+        },
+        "end": {
+          "offset": 148,
+          "line": 13,
+          "col": 1,
+          "tokLen": 1
+        }
+      },
+      "tagUsed": "struct",
+      "completeDefinition": true,
+      "inner": [
+        {
+          "id": "0x1f1d430",
+          "kind": "FieldDecl",
+          "loc": {
+            "offset": 125,
+            "line": 10,
+            "col": 8,
+            "tokLen": 1
+          },
+          "range": {
+            "begin": {
+              "offset": 120,
+              "col": 3,
+              "tokLen": 4
+            },
+            "end": {
+              "offset": 125,
+              "col": 8,
+              "tokLen": 1
+            }
+          },
+          "name": "a",
+          "type": {
+            "qualType": "char"
+          }
+        },
+        {
+          "id": "0x1f1d490",
+          "kind": "FieldDecl",
+          "loc": {
+            "offset": 135,
+            "line": 11,
+            "col": 8,
+            "tokLen": 1
+          },
+          "range": {
+            "begin": {
+              "offset": 130,
+              "col": 3,
+              "tokLen": 4
+            },
+            "end": {
+              "offset": 135,
+              "col": 8,
+              "tokLen": 1
+            }
+          },
+          "name": "b",
+          "type": {
+            "qualType": "char"
+          }
+        },
+        {
+          "id": "0x1f1d4f0",
+          "kind": "FieldDecl",
+          "loc": {
+            "offset": 145,
+            "line": 12,
+            "col": 8,
+            "tokLen": 1
+          },
+          "range": {
+            "begin": {
+              "offset": 140,
+              "col": 3,
+              "tokLen": 4
+            },
+            "end": {
+              "offset": 145,
+              "col": 8,
+              "tokLen": 1
+            }
+          },
+          "name": "c",
+          "type": {
+            "qualType": "char"
+          }
+        }
+      ]
+    },
+    {
+      "id": "0x1f1d598",
+      "kind": "TypedefDecl",
+      "loc": {
+        "offset": 150,
+        "line": 13,
+        "col": 3,
+        "tokLen": 15
+      },
+      "range": {
+        "begin": {
+          "offset": 101,
+          "line": 9,
+          "col": 1,
+          "tokLen": 7
+        },
+        "end": {
+          "offset": 150,
+          "line": 13,
+          "col": 3,
+          "tokLen": 15
+        }
+      },
+      "name": "some_characters",
+      "type": {
+        "desugaredQualType": "some_characters",
+        "qualType": "struct some_characters"
+      },
+      "inner": [
+        {
+          "id": "0x1f1d540",
+          "kind": "ElaboratedType",
+          "type": {
+            "qualType": "struct some_characters"
+          },
+          "ownedTagDecl": {
+            "id": "0x1f1d378",
+            "kind": "RecordDecl",
+            "name": ""
+          },
+          "inner": [
+            {
+              "id": "0x1f1d400",
+              "kind": "RecordType",
+              "type": {
+                "qualType": "some_characters"
+              },
+              "decl": {
+                "id": "0x1f1d378",
+                "kind": "RecordDecl",
+                "name": ""
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0x1f1d608",
+      "kind": "RecordDecl",
+      "loc": {
+        "offset": 192,
+        "line": 16,
+        "col": 8,
+        "tokLen": 5
+      },
+      "range": {
+        "begin": {
+          "offset": 185,
+          "col": 1,
+          "tokLen": 6
+        },
+        "end": {
+          "offset": 246,
+          "line": 21,
+          "col": 1,
+          "tokLen": 1
+        }
+      },
+      "name": "outer",
+      "tagUsed": "struct",
+      "completeDefinition": true,
+      "inner": [
+        {
+          "id": "0x1f1d6c8",
+          "kind": "FieldDecl",
+          "loc": {
+            "offset": 208,
+            "line": 17,
+            "col": 9,
+            "tokLen": 1
+          },
+          "range": {
+            "begin": {
+              "offset": 202,
+              "col": 3,
+              "tokLen": 4
+            },
+            "end": {
+              "offset": 208,
+              "col": 9,
+              "tokLen": 1
+            }
+          },
+          "name": "x",
+          "type": {
+            "qualType": "void *"
+          }
+        },
+        {
+          "id": "0x1f1d718",
+          "kind": "RecordDecl",
+          "loc": {
+            "offset": 213,
+            "line": 18,
+            "col": 3,
+            "tokLen": 6
+          },
+          "range": {
+            "begin": {
+              "offset": 213,
+              "col": 3,
+              "tokLen": 6
+            },
+            "end": {
+              "offset": 237,
+              "line": 20,
+              "col": 3,
+              "tokLen": 1
+            }
+          },
+          "tagUsed": "struct",
+          "completeDefinition": true,
+          "inner": [
+            {
+              "id": "0x1f1d7d8",
+              "kind": "FieldDecl",
+              "loc": {
+                "offset": 232,
+                "line": 19,
+                "col": 11,
+                "tokLen": 1
+              },
+              "range": {
+                "begin": {
+                  "offset": 226,
+                  "col": 5,
+                  "tokLen": 4
+                },
+                "end": {
+                  "offset": 232,
+                  "col": 11,
+                  "tokLen": 1
+                }
+              },
+              "name": "y",
+              "type": {
+                "qualType": "void *"
+              }
+            }
+          ]
+        },
+        {
+          "id": "0x1f1d888",
+          "kind": "FieldDecl",
+          "loc": {
+            "offset": 239,
+            "line": 20,
+            "col": 5,
+            "tokLen": 5
+          },
+          "range": {
+            "begin": {
+              "offset": 213,
+              "line": 18,
+              "col": 3,
+              "tokLen": 6
+            },
+            "end": {
+              "offset": 239,
+              "line": 20,
+              "col": 5,
+              "tokLen": 5
+            }
+          },
+          "name": "inner",
+          "type": {
+            "desugaredQualType": "struct outer::(unnamed at struct.h:18:3)",
+            "qualType": "struct (unnamed struct at struct.h:18:3)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "0x1f1d8d8",
+      "kind": "RecordDecl",
+      "loc": {
+        "offset": 281,
+        "line": 24,
+        "col": 8,
+        "tokLen": 3
+      },
+      "range": {
+        "begin": {
+          "offset": 274,
+          "col": 1,
+          "tokLen": 6
+        },
+        "end": {
+          "offset": 539,
+          "line": 41,
+          "col": 1,
+          "tokLen": 1
+        }
+      },
+      "name": "son",
+      "tagUsed": "struct",
+      "completeDefinition": true,
+      "inner": [
+        {
+          "id": "0x1f1d980",
+          "kind": "RecordDecl",
+          "loc": {
+            "offset": 289,
+            "line": 25,
+            "col": 3,
+            "tokLen": 6
+          },
+          "range": {
+            "begin": {
+              "offset": 289,
+              "col": 3,
+              "tokLen": 6
+            },
+            "end": {
+              "offset": 406,
+              "line": 32,
+              "col": 3,
+              "tokLen": 1
+            }
+          },
+          "tagUsed": "struct",
+          "completeDefinition": true,
+          "inner": [
+            {
+              "id": "0x1f1da20",
+              "kind": "RecordDecl",
+              "loc": {
+                "offset": 302,
+                "line": 26,
+                "col": 5,
+                "tokLen": 6
+              },
+              "range": {
+                "begin": {
+                  "offset": 302,
+                  "col": 5,
+                  "tokLen": 6
+                },
+                "end": {
+                  "offset": 334,
+                  "line": 28,
+                  "col": 5,
+                  "tokLen": 1
+                }
+              },
+              "tagUsed": "struct",
+              "completeDefinition": true,
+              "inner": [
+                {
+                  "id": "0x1f1dad8",
+                  "kind": "FieldDecl",
+                  "loc": {
+                    "offset": 321,
+                    "line": 27,
+                    "col": 11,
+                    "tokLen": 1
+                  },
+                  "range": {
+                    "begin": {
+                      "offset": 317,
+                      "col": 7,
+                      "tokLen": 3
+                    },
+                    "end": {
+                      "offset": 321,
+                      "col": 11,
+                      "tokLen": 1
+                    }
+                  },
+                  "name": "a",
+                  "type": {
+                    "qualType": "int"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "0x1f1db88",
+              "kind": "FieldDecl",
+              "loc": {
+                "offset": 336,
+                "line": 28,
+                "col": 7,
+                "tokLen": 16
+              },
+              "range": {
+                "begin": {
+                  "offset": 302,
+                  "line": 26,
+                  "col": 5,
+                  "tokLen": 6
+                },
+                "end": {
+                  "offset": 336,
+                  "line": 28,
+                  "col": 7,
+                  "tokLen": 16
+                }
+              },
+              "name": "maternal_grandma",
+              "type": {
+                "desugaredQualType": "struct son::(unnamed at struct.h:26:5)",
+                "qualType": "struct (unnamed struct at struct.h:26:5)"
+              }
+            },
+            {
+              "id": "0x1f1dbd8",
+              "kind": "RecordDecl",
+              "loc": {
+                "offset": 358,
+                "line": 29,
+                "col": 5,
+                "tokLen": 6
+              },
+              "range": {
+                "begin": {
+                  "offset": 358,
+                  "col": 5,
+                  "tokLen": 6
+                },
+                "end": {
+                  "offset": 384,
+                  "line": 31,
+                  "col": 5,
+                  "tokLen": 1
+                }
+              },
+              "tagUsed": "struct",
+              "completeDefinition": true,
+              "inner": [
+                {
+                  "id": "0x1f1dc98",
+                  "kind": "FieldDecl",
+                  "loc": {
+                    "offset": 377,
+                    "line": 30,
+                    "col": 11,
+                    "tokLen": 1
+                  },
+                  "range": {
+                    "begin": {
+                      "offset": 373,
+                      "col": 7,
+                      "tokLen": 3
+                    },
+                    "end": {
+                      "offset": 377,
+                      "col": 11,
+                      "tokLen": 1
+                    }
+                  },
+                  "name": "b",
+                  "type": {
+                    "qualType": "int"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "0x1f1dd48",
+              "kind": "FieldDecl",
+              "loc": {
+                "offset": 386,
+                "line": 31,
+                "col": 7,
+                "tokLen": 16
+              },
+              "range": {
+                "begin": {
+                  "offset": 358,
+                  "line": 29,
+                  "col": 5,
+                  "tokLen": 6
+                },
+                "end": {
+                  "offset": 386,
+                  "line": 31,
+                  "col": 7,
+                  "tokLen": 16
+                }
+              },
+              "name": "maternal_grandpa",
+              "type": {
+                "desugaredQualType": "struct son::(unnamed at struct.h:29:5)",
+                "qualType": "struct (unnamed struct at struct.h:29:5)"
+              }
+            }
+          ]
+        },
+        {
+          "id": "0x1f1de48",
+          "kind": "FieldDecl",
+          "loc": {
+            "offset": 408,
+            "line": 32,
+            "col": 5,
+            "tokLen": 3
+          },
+          "range": {
+            "begin": {
+              "offset": 289,
+              "line": 25,
+              "col": 3,
+              "tokLen": 6
+            },
+            "end": {
+              "offset": 408,
+              "line": 32,
+              "col": 5,
+              "tokLen": 3
+            }
+          },
+          "name": "mom",
+          "type": {
+            "desugaredQualType": "struct son::(unnamed at struct.h:25:3)",
+            "qualType": "struct (unnamed struct at struct.h:25:3)"
+          }
+        },
+        {
+          "id": "0x1f1de98",
+          "kind": "RecordDecl",
+          "loc": {
+            "offset": 415,
+            "line": 33,
+            "col": 3,
+            "tokLen": 6
+          },
+          "range": {
+            "begin": {
+              "offset": 415,
+              "col": 3,
+              "tokLen": 6
+            },
+            "end": {
+              "offset": 532,
+              "line": 40,
+              "col": 3,
+              "tokLen": 1
+            }
+          },
+          "tagUsed": "struct",
+          "completeDefinition": true,
+          "inner": [
+            {
+              "id": "0x1f1df40",
+              "kind": "RecordDecl",
+              "loc": {
+                "offset": 428,
+                "line": 34,
+                "col": 5,
+                "tokLen": 6
+              },
+              "range": {
+                "begin": {
+                  "offset": 428,
+                  "col": 5,
+                  "tokLen": 6
+                },
+                "end": {
+                  "offset": 460,
+                  "line": 36,
+                  "col": 5,
+                  "tokLen": 1
+                }
+              },
+              "tagUsed": "struct",
+              "completeDefinition": true,
+              "inner": [
+                {
+                  "id": "0x1f1dff8",
+                  "kind": "FieldDecl",
+                  "loc": {
+                    "offset": 447,
+                    "line": 35,
+                    "col": 11,
+                    "tokLen": 1
+                  },
+                  "range": {
+                    "begin": {
+                      "offset": 443,
+                      "col": 7,
+                      "tokLen": 3
+                    },
+                    "end": {
+                      "offset": 447,
+                      "col": 11,
+                      "tokLen": 1
+                    }
+                  },
+                  "name": "c",
+                  "type": {
+                    "qualType": "int"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "0x1f1e0a8",
+              "kind": "FieldDecl",
+              "loc": {
+                "offset": 462,
+                "line": 36,
+                "col": 7,
+                "tokLen": 16
+              },
+              "range": {
+                "begin": {
+                  "offset": 428,
+                  "line": 34,
+                  "col": 5,
+                  "tokLen": 6
+                },
+                "end": {
+                  "offset": 462,
+                  "line": 36,
+                  "col": 7,
+                  "tokLen": 16
+                }
+              },
+              "name": "paternal_grandma",
+              "type": {
+                "desugaredQualType": "struct son::(unnamed at struct.h:34:5)",
+                "qualType": "struct (unnamed struct at struct.h:34:5)"
+              }
+            },
+            {
+              "id": "0x1f1e0f8",
+              "kind": "RecordDecl",
+              "loc": {
+                "offset": 484,
+                "line": 37,
+                "col": 5,
+                "tokLen": 6
+              },
+              "range": {
+                "begin": {
+                  "offset": 484,
+                  "col": 5,
+                  "tokLen": 6
+                },
+                "end": {
+                  "offset": 510,
+                  "line": 39,
+                  "col": 5,
+                  "tokLen": 1
+                }
+              },
+              "tagUsed": "struct",
+              "completeDefinition": true,
+              "inner": [
+                {
+                  "id": "0x1f1e1c8",
+                  "kind": "FieldDecl",
+                  "loc": {
+                    "offset": 503,
+                    "line": 38,
+                    "col": 11,
+                    "tokLen": 1
+                  },
+                  "range": {
+                    "begin": {
+                      "offset": 499,
+                      "col": 7,
+                      "tokLen": 3
+                    },
+                    "end": {
+                      "offset": 503,
+                      "col": 11,
+                      "tokLen": 1
+                    }
+                  },
+                  "name": "d",
+                  "type": {
+                    "qualType": "int"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "0x1f1e278",
+              "kind": "FieldDecl",
+              "loc": {
+                "offset": 512,
+                "line": 39,
+                "col": 7,
+                "tokLen": 16
+              },
+              "range": {
+                "begin": {
+                  "offset": 484,
+                  "line": 37,
+                  "col": 5,
+                  "tokLen": 6
+                },
+                "end": {
+                  "offset": 512,
+                  "line": 39,
+                  "col": 7,
+                  "tokLen": 16
+                }
+              },
+              "name": "paternal_grandpa",
+              "type": {
+                "desugaredQualType": "struct son::(unnamed at struct.h:37:5)",
+                "qualType": "struct (unnamed struct at struct.h:37:5)"
+              }
+            }
+          ]
+        },
+        {
+          "id": "0x1f1e378",
+          "kind": "FieldDecl",
+          "loc": {
+            "offset": 534,
+            "line": 40,
+            "col": 5,
+            "tokLen": 3
+          },
+          "range": {
+            "begin": {
+              "offset": 415,
+              "line": 33,
+              "col": 3,
+              "tokLen": 6
+            },
+            "end": {
+              "offset": 534,
+              "line": 40,
+              "col": 5,
+              "tokLen": 3
+            }
+          },
+          "name": "dad",
+          "type": {
+            "desugaredQualType": "struct son::(unnamed at struct.h:33:3)",
+            "qualType": "struct (unnamed struct at struct.h:33:3)"
+          }
+        }
+      ]
+    }
+  ]
+}

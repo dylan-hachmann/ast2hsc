@@ -1,5 +1,3 @@
-#include <stdbool.h>
-
 // Nested typedefs
 typedef int inte;
 typedef inte integ;
