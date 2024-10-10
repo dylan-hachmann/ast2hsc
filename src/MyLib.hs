@@ -150,21 +150,22 @@ renderASTObject fp (NodeFuD fd) =
      , "    "++funcName++" :: "++sig++"IO ("++retType++")"
      ]
 renderASTObject fp (NodeRD rd) =
-  let (Just rn) = recordName rd
-  in case (fields rd) of
-    Nothing
+  case (recordName rd, fields rd) of
+    (Just rn, Just f)
+      -> unlines
+         ([ "{{ struct"
+          , "    "++fp++","
+          , "    "++rn++","
+          ]++renderRecordFields f++[ "}}"])
+    (Just rn, Nothing)
       -> unlines
          [ "{{ struct"
          , "    "++fp++","
          , "    "++rn
          , "}}"
          ]
-    Just x
-      -> unlines
-         ([ "{{ struct"
-          , "    "++fp++","
-          , "    "++rn++","
-          ]++renderRecordFields x++[ "}}"])
+    (Nothing, _)
+      -> "!!Unimplemented: Anonymous struct!!"
 renderASTObject _ _ = "!!Unimplemented AST Object!!"
 
 renderRecordFields :: V.Vector ASTObject -> [String]
