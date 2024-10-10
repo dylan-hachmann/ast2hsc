@@ -1,6 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
@@ -20,12 +19,10 @@ import GHC.Generics
 import System.Process
 
 -- Small objects within AST nodes
-data DeclType where
-  DeclType ::
-    { qualType :: String,
-      desugaredQualType :: Maybe String
-    } ->
-    DeclType
+data DeclType = DeclType
+  { qualType :: String,
+    desugaredQualType :: Maybe String
+  }
   deriving (Show, Generic, FromJSON)
 
 -- Only should get one of these at the top level, so it can be thought
