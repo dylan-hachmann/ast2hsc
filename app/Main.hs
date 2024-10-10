@@ -7,14 +7,12 @@ module Main where
 
 import Control.Lens
 import Control.Monad.Trans.Reader
-import Control.Monad.Trans.Reader
 import Data.Aeson
 import Data.Aeson.Key
 import Data.Aeson.Lens
 import Data.Maybe
 import GHC.Generics
 import System.Environment (getArgs)
-import System.IO
 import System.IO
 import System.Process
 import qualified Data.ByteString as B
@@ -482,28 +480,7 @@ getTypedefsMap tud = do
 typedefsMap :: V.Vector ASTObject -> M.Map String String
 typedefsMap = M.fromList . V.toList . V.map typedefToTuple
 
--- Go through every typedef in a map until the "base" type is
--- reached. Imaginably, this is usually one or zero iterations to
--- either resolve a typedef or not, but this method provides support
--- nested typedefs if they are to occur.
-unfurlTypedefs :: M.Map String String -> DeclType -> DeclType
-unfurlTypedefs tdMap dt =
-  let qt = qualType dt
-      dqt = desugaredQualType dt
-      t = case dqt of
-        Just x -> x
-        Nothing -> qt
-      resolvedType = M.lookup t tdMap
-   in case resolvedType of
-        Just rt -> unfurlTypedefs tdMap $ DeclType rt Nothing
-        Nothing -> DeclType t Nothing
-
--- * Invoke clang
-
--- TODO: Parameterize this; users should be able to pass in absolute
--- paths.
-clangExecutable :: String
-clangExecutable = "clang"
+-- * Decode
 
 decodeFromHandle :: Handle -> IO TranslationUnitDecl
 decodeFromHandle h =
@@ -536,7 +513,7 @@ _invokeClang args =
    in do
         (_, Just hout, _, _) <-
           createProcess
-            (proc clangExecutable args')
+            (proc "clang" args')
               { std_out = CreatePipe,
                 -- Suppress stdErr, which is often a bunch of useless
                 -- garbage about not finding includes.
