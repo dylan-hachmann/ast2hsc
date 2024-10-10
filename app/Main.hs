@@ -10,16 +10,16 @@ import Control.Monad.Trans.Reader
 import Data.Aeson
 import Data.Aeson.Key
 import Data.Aeson.Lens
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as LB
+import qualified Data.Map.Lazy as M
 import Data.Maybe
+import qualified Data.Text as T
+import qualified Data.Vector as V
 import GHC.Generics
 import System.Environment (getArgs)
 import System.IO
 import System.Process
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as LB
-import qualified Data.Map.Lazy as M
-import qualified Data.Text as T
-import qualified Data.Vector as V
 
 main :: IO ()
 main = do
@@ -486,6 +486,7 @@ decodeFromHandle h =
       Nothing -> return (TranslationUnitDecl (V.fromList []))
 
 -- * Convenience functions for REPL use
+
 _decodeASTNodes :: Handle -> FilePath -> IO (V.Vector ASTObject)
 _decodeASTNodes h f =
   getASTNodesFromFile f <$> decodeFromHandle h
