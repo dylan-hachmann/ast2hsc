@@ -221,6 +221,7 @@ renderASTObject fp (NodeRD rd) =
             "}}"
           ]
     (Nothing, _) -> return "!!Unimplemented: Anonymous struct!!"
+renderASTObject _ (NodeTD _) = return ""
 renderASTObject _ _ = return "!!Unimplemented AST Object!!"
 
 renderRecordFields :: V.Vector ASTObject -> Reader Env [String]
