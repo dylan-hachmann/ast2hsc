@@ -22,6 +22,14 @@ in WLHS.
 
 ** Contributing
 If you'd like to help, there's still so much that can be done. In
-terms of functionality, supporting nested structs is the biggest
-priority. Additionally, any attempt to cleanup my amateurish code is
-wholly welcome.
+terms of functionality:
+- Supporting nested structs is the biggest priority
+- More conversions in convertType
+- Remove dependency on aeson-lens
+- Start adding options for rendered output (genuine hsc instead of
+  just the templating language)
+- Tests! I'm not sure how I want to do these. Ideally, they call
+  compiled C code.
+
+I'm still a noob when it comes to Haskell. Any help cleaning up my
+code would be much appreciated.

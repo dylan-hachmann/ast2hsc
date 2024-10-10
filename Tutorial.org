@@ -13,9 +13,8 @@ can't just bind to it in a vacuum, since header files have no meaning
 outside of translation units. I need to figure out which translation
 units include this header. Grepping for filename includes returns a
 number of C files, so which one do I choose? I don't know if there's a
-good heuristic for this, so some discretion is in order. In my case,
-I'm trying to build something similar to tinywl, so I'll use
-~tinywl/tinywl.c~.
+good heuristic for this. In my case, I'm trying to build something
+similar to tinywl, so I'll use ~tinywl/tinywl.c~.
 
 Inside of the ~compile_commands.json~, I see:
 ~"file":"../tinywl/tinywl.c"~. From the same object, I need the
@@ -43,7 +42,7 @@ created with meson, so I go there and run the following command:
       > wlr_types_wlr_output.json
 #+end_src
 
-Finally, I can run
+Finally, I can run something like
 #+begin_src bash
   ast2hsc wlr_types_wlr_output.json > /path/to/wlhs/WLR/Types/Output.hsc
 #+end_src

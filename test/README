@@ -1,0 +1,3 @@
+Right now I've just got a couple of header files and their AST dumps
+for some hand-testing. Even if just for this purpose, more header
+files with weird corner cases would be an appreciated contribution.
