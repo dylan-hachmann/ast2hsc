@@ -14,6 +14,7 @@ import qualified Data.Vector as V
 import qualified Data.Text as T
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
+import qualified Data.Map.Lazy as M
 
 -- Small objects within AST nodes
 data DeclType where
@@ -335,6 +336,41 @@ invokeAndGetASTNodes args = getASTNodesFromFile (last args) <$> invokeClang args
 
 invokeAndGetTypedefs :: [String] -> IO (V.Vector ASTObject)
 invokeAndGetTypedefs args = getTypedefsFromTU <$> invokeClang args
+
+typedefToTuple :: ASTObject -> (String, String)
+typedefToTuple (NodeTD x) =
+  let tdName = typeDefName x
+      tdt  = typeDefType x
+      qt   = qualType tdt
+      dqt  = desugaredQualType tdt
+  in case dqt of
+    Just t  -> (tdName, t)
+    Nothing -> (tdName, qt)
+typedefToTuple _ = error "ASTObject isn't a typedef!"
+
+getTypedefsMap :: IO TranslationUnitDecl -> IO (M.Map String String)
+getTypedefsMap tud = do
+  x <- tud
+  return (typedefsMap $ getTypedefsFromTU x)
+
+typedefsMap :: V.Vector ASTObject -> M.Map String String
+typedefsMap = M.fromList . V.toList . V.map typedefToTuple
+
+-- Go through every typedef in a map until the "base" type is
+-- reached. Imaginably, this is usually one or zero iterations to
+-- either resolve a typedef or not, but this method provides support
+-- nested typedefs if they are to occur.
+unfurlTypedefs :: M.Map String String -> DeclType -> DeclType
+unfurlTypedefs tdMap dt =
+  let qt = qualType dt
+      dqt = desugaredQualType dt
+      t = case dqt of
+            Just x  -> x
+            Nothing -> qt
+      resolvedType = M.lookup t tdMap
+  in case resolvedType of
+       Just rt -> unfurlTypedefs tdMap $ DeclType rt Nothing
+       Nothing -> DeclType t Nothing
 
 renderAll :: FilePath -> IO (V.Vector ASTObject) -> IO String
 renderAll fp ast = do
