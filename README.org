@@ -33,6 +33,9 @@ terms of functionality:
   just the templating language)
 - Tests! I'm not sure how I want to do these. Ideally, they call
   compiled C code.
+- Longer term: import all that's needed. Instead of just generating
+  bindings to what's in a single header, bind recursively to all of
+  the bindings that those bindings depend on.
 For formatting I've been using ormolu.
 
 I'm still a noob when it comes to Haskell. Any help cleaning up my
