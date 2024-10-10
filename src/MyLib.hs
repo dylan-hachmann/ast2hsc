@@ -270,7 +270,8 @@ getInnerAsList = V.toList
 renderParamTypeSignature :: [ASTObject] -> Reader Env String
 renderParamTypeSignature (NodePVD pv : xs) = do
   x <- renderParamTypeSignature xs
-  convertType $ qualType (parmVarType pv) ++ " -> " ++ x
+  t <- convertType (qualType (parmVarType pv))
+  return (t ++ " -> " ++ x)
 renderParamTypeSignature (_ : xs) = renderParamTypeSignature xs
 renderParamTypeSignature [] = return $ ""
 
