@@ -72,11 +72,15 @@ library
     build-depends:    aeson,
                       base,
                       bytestring,
+                      containers,
                       containers >= 0.6.5.1,
                       lens,
                       lens-aeson,
+                      mtl >= 2.2.2,
+                      pretty-simple >= 4.1.2.0,
                       process,
                       text,
+                      transformers >= 0.5.6.2,
                       vector
 
     -- Directories containing source files.
@@ -100,9 +104,14 @@ executable ast2hsc
 
     -- Other library packages from which modules are imported.
     build-depends:
-        base,
-        ast2hsc,
-        pretty-simple
+                  ast2hsc,
+                  base,
+                  containers,
+                  mtl >= 2.2.2,
+                  pretty-simple,
+                  pretty-simple >= 4.1.2.0,
+                  transformers >= 0.5.6.2,
+                  vector
 
     -- Directories containing source files.
     hs-source-dirs:   app
@@ -134,5 +143,9 @@ test-suite ast2hsc-test
 
     -- Test dependencies.
     build-depends:
-        base,
-        ast2hsc
+                  ast2hsc,
+                  base,
+                  containers,
+                  mtl >= 2.2.2,
+                  pretty-simple >= 4.1.2.0,
+                  transformers >= 0.5.6.2

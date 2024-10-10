@@ -1,16 +1,23 @@
 module Main where
 
-import qualified MyLib (everything, invokeClang)
+import MyLib
 import Text.Pretty.Simple
+import Control.Monad.Trans.Reader
+import qualified Data.Vector as V
+import qualified Data.Map as M
 import System.Environment (getArgs)
+
+data Env = Env { getTdMap :: M.Map String String
+               , getASTNodes :: V.Vector ASTObject
+               } deriving Show
 
 main :: IO ()
 main = do
   args <- getArgs
-  case (head args) of
-    "parsedAST" -> do
-      astObj <- MyLib.invokeClang (tail args)
-      pPrint astObj
-    _           -> do
-      renderedContent <- MyLib.everything args
-      putStrLn renderedContent
+  translationUnitDecl <- invokeClang args
+  tdMap <- getTypedefsMap (return translationUnitDecl)
+  let header = last args
+      astNodes = getASTNodesFromFile header translationUnitDecl
+      env = Env tdMap astNodes
+  putStrLn (show env)
+  return ()

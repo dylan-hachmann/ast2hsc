@@ -4,7 +4,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module MyLib (everything, invokeClang) where
+module MyLib where
 import           Control.Lens
 import           Data.Aeson
 import           Data.Aeson.Key
@@ -418,3 +418,6 @@ _clangArgs =
   , "-lxkbcommon"
   , "../wlroots/include/wlr/types/wlr_output.h"
   ]
+
+_testTypedefsArgs =
+  [ "test/typedefs.h" ]
