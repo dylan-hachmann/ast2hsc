@@ -12,6 +12,7 @@ import Data.Aeson.Key
 import Data.Aeson.Lens
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
+import Data.Char
 import Data.List
 import qualified Data.Map.Lazy as M
 import Data.Maybe
@@ -335,6 +336,8 @@ renderEnumConstantDecl (NodeECD ecd) =
 renderEnumConstantDecl x =
   "!!Unimplemented: " <> show x <> "!!"
 
+-- * Type conversion
+
 basicTypeMap :: M.Map String String
 basicTypeMap =
   M.fromList
@@ -353,68 +356,64 @@ basicTypeMap =
       ("void", "()")
     ]
 
--- newtype NameChange = NameChange (String -> String)
-type NameChange = String -> String
+type FmtType = String -> String
 
--- Parameterizing the name change with the intention that I may pass
--- in values with an "internal" name change at some point, which will
--- just add an underscore to avoid compilation warnings.
-convertType' :: NameChange -> String -> Reader Env String
-convertType' nameChange t
-  | "const " `isPrefixOf` t' = convertType' nameChange (drop 6 t')
-  | "struct " `isPrefixOf` t' =
-      let rest = drop 7 t'
-       in case words rest of
-            [] -> return "!!Unimplemented: anonymous struct!!"
-            [x] -> return $ (nameChange . structNameChange) x
-            x : xs ->
-              if "*" `isPrefixOf` head xs
-                then
-                  convertType'
-                    (addPtr . nameChange)
-                    (take 7 t' <> " " <> x <> " " <> drop 1 (unwords xs))
-                else case M.lookup rest basicTypeMap of
-                  Nothing -> return $ "!!Unimplemented: " <> t' <> "!!"
-                  Just y -> return $ (nameChange . structNameChange) y
-  | "enum " `isPrefixOf` t' = return $ (nameChange . enumNameChange) (drop 5 t')
-  | otherwise = convertType'' nameChange t
+addPtr :: FmtType
+addPtr x = "Ptr (" <> x <> ")"
+
+-- Capitalize the first alphanumeric character
+structNameChange :: String -> String
+structNameChange name =
+  let (start, end) = T.break isAlpha $ T.pack name
+   in case T.uncons end of
+        Nothing -> name
+        Just (x, xs) -> T.unpack $ start <> T.cons (toUpper x) xs
+
+enumNameChange :: String -> String
+enumNameChange = structNameChange
+
+convertType :: String -> Reader Env String
+convertType = tryTypeLookup id False
+
+tryTypeLookup :: FmtType -> Bool -> String -> Reader Env String
+tryTypeLookup nameChange isCompositeType t = do
+  let strippedT = (T.unpack . T.strip . T.pack) t
+  tdMap <- asks getTdMap
+  case M.lookup strippedT basicTypeMap of
+    Just x -> return (nameChange x)
+    Nothing ->
+      let tdResolvedT =
+            (T.unpack . T.strip . T.pack) $
+              fromMaybe strippedT $
+                M.lookup strippedT tdMap
+       in do
+            (nameChange', t') <- tryConvertCompositeType nameChange tdResolvedT
+            (nameChange'', t'') <- tryConvertPtrType nameChange' t'
+            case (isCompositeType, t /= t', t' /= t'') of
+              (True, False, False) -> return (nameChange' t')
+              (True, _, _) -> tryTypeLookup nameChange'' True t''
+              (False, False, False) -> return ("!!Unimplemented: " <> tdResolvedT <> "!!")
+              (False, True, _) -> tryTypeLookup nameChange'' True t''
+              (False, _, _) -> tryTypeLookup nameChange'' False t''
+
+tryConvertCompositeType :: FmtType -> String -> Reader Env (FmtType, String)
+tryConvertCompositeType nameChange t
+  | "const " `isPrefixOf` t' = return (nameChange, drop 6 t')
+  | "struct " `isPrefixOf` t' = return (nameChange . structNameChange, drop 7 t')
+  | "enum " `isPrefixOf` t' = return (nameChange . enumNameChange, drop 5 t')
+  | otherwise = return (nameChange, t)
   where
     t' = (T.unpack . T.strip . T.pack) t -- I will switch Strings to Text, eventually :)
 
-addPtr :: NameChange
-addPtr x = "Ptr (" <> x <> ")"
-
-convertType'' :: NameChange -> String -> Reader Env String
-convertType'' nameChange t =
+tryConvertPtrType :: FmtType -> String -> Reader Env (FmtType, String)
+tryConvertPtrType nameChange t = do
   case words t of
-    [] -> error "convertType'' received an empty string input"
-    [x] -> do
-      tdMap <- asks getTdMap
-      case M.lookup x basicTypeMap of
-        Just y -> return (nameChange y)
-        Nothing -> case M.lookup x tdMap of
-          Nothing -> return $ "!!Unimplemented: " <> t <> "!!"
-          Just x' ->
-            if x' /= x
-              then convertType'' nameChange x'
-              else return $ "!!Unimplemented: " <> t <> "!!"
+    [] -> return (nameChange, "TRY_CONVERT_PTR_TYPE_EMPTY")
+    [_] -> return (nameChange, t)
     x : xs ->
       if "*" `isPrefixOf` head xs
-        then convertType'' (addPtr . nameChange) (x <> " " <> drop 1 (unwords xs))
-        else case M.lookup t basicTypeMap of
-          Nothing -> return $ "!!Unimplemented: " <> t <> "!!"
-          Just y -> return $ (nameChange . structNameChange) y
-
-convertType :: String -> Reader Env String
-convertType x = convertType' id x
-
--- TODO: Capitalize first thing before _
-structNameChange :: String -> String
-structNameChange = id
-
--- TODO: Capitalize first thing before _
-enumNameChange :: String -> String
-enumNameChange = id
+        then return (addPtr . nameChange, x <> " " <> drop 1 (unwords xs))
+        else return (nameChange, t)
 
 -- * Process AST
 
